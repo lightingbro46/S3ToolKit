@@ -89,13 +89,14 @@ endif ()
 
 set(ENABLE_OPENSSL ON CACHE BOOL "enable openssl")
 set(ENABLE_MYSQL ON CACHE BOOL "enable mysql")
+set(ENABLE_SQLITE ON CACHE BOOL "enable sqlite")
 set(ASAN_USE_DELETE OFF CACHE BOOL "use delele[] or free when asan enabled")
 
 #查找openssl是否安装
 #Find out if openssl is installed
 find_package(OpenSSL QUIET)
 if (OPENSSL_FOUND AND ENABLE_OPENSSL)
-    message(STATUS "找到openssl库:\"${OPENSSL_INCLUDE_DIR}\",ENABLE_OPENSSL宏已打开")
+    message(STATUS "Find the openssl library:\"${OPENSSL_INCLUDE_DIR}\",ENABLE_OPENSSL macro is turned on")
     include_directories(${OPENSSL_INCLUDE_DIR})
     add_definitions(-DENABLE_OPENSSL)
     list(APPEND LINK_LIB_LIST ${OPENSSL_LIBRARIES})
@@ -105,11 +106,20 @@ endif ()
 #Find out if mysql is installed
 find_package(MYSQL QUIET)
 if (MYSQL_FOUND AND ENABLE_MYSQL)
-    message(STATUS "找到mysqlclient库:\"${MYSQL_INCLUDE_DIR}\",ENABLE_MYSQL宏已打开")
+    message(STATUS "Find the mysqlclient library:\"${MYSQL_INCLUDE_DIR}\",ENABLE_MYSQL macro is turned on")
     include_directories(${MYSQL_INCLUDE_DIR})
     include_directories(${MYSQL_INCLUDE_DIR}/mysql)
     add_definitions(-DENABLE_MYSQL)
     list(APPEND LINK_LIB_LIST ${MYSQL_LIBRARIES})
+endif ()
+
+#Find out if SQLite3 is installed
+find_package(SQLite3 QUIET)
+if (SQLite3_FOUND AND ENABLE_SQLITE)
+    message(STATUS "Find the SQLite3 library: \"${SQLite3_INCLUDE_DIR}\", ENABLE_SQLITE macro is turned on")
+    include_directories(${SQLite3_INCLUDE_DIR})
+    add_definitions(-DENABLE_SQLITE)
+    list(APPEND LINK_LIB_LIST ${SQLite3_LIBRARIES})
 endif ()
 
 #是否使用delete[]替代free，用于解决开启asan后在MacOS上的卡死问题
@@ -120,7 +130,7 @@ endif ()
 
 #打印库文件
 #Print library files
-message(STATUS "将链接依赖库:${LINK_LIB_LIST}")
+message(STATUS "Link dependency library:${LINK_LIB_LIST}")
 #使能c++11
 #Enable c++11
 set(CMAKE_CXX_STANDARD 11)
