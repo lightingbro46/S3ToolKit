@@ -11,8 +11,6 @@ reference implemantion of RFC 1321
 Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
 rights reserved.
 
-Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
-
 License to copy and use this software is granted provided that it
 is identified as the "RSA Data Security, Inc. MD5 Message-Digest
 Algorithm" in all material mentioning or referencing this software

@@ -1,7 +1,7 @@
 ﻿/*
- * Copyright (c) 2016 The ZLToolKit project authors. All Rights Reserved.
+ * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
  *
- * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
+ * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -40,8 +40,8 @@ bool TcpClient::alive() const {
         //Connecting or already connected
         return true;
     }
-    //在websocket client(zlmediakit)相关代码中，  [AUTO-TRANSLATED:d309d587]
-    //In websocket client (zlmediakit) related code,
+    //在websocket client(s3mediakit)相关代码中，  [AUTO-TRANSLATED:d309d587]
+    //In websocket client (s3mediakit) related code,
     //_timer一直为空，但是socket fd有效，alive状态也应该返回true  [AUTO-TRANSLATED:344889b8]
     //_timer is always empty, but socket fd is valid, and alive status should also return true
     auto sock = getSock();

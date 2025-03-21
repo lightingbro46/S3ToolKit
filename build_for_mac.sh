@@ -4,8 +4,8 @@ brew install cmake
 brew install mysql
 brew install openssl
 cd ..
-git clone --depth=50 https://github.com/xia-chu/ZLToolKit.git
-cd ZLToolKit
+git clone --depth=50 https://github.com/S3MediaKit/S3ToolKit.git
+cd S3ToolKit
 mkdir -p mac_build
 rm -rf ./build
 ln -s ./mac_build ./build

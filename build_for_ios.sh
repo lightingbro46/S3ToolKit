@@ -2,8 +2,8 @@
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install cmake
 cd ..
-git clone --depth=50 https://github.com/xia-chu/ZLToolKit.git
-cd ZLToolKit
+git clone --depth=50 https://github.com/S3MediaKit/S3ToolKit.git
+cd S3ToolKit
 mkdir -p ios_build
 rm -rf ./build
 ln -s ./ios_build ./build

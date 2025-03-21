@@ -1,7 +1,7 @@
 ﻿/*
- * Copyright (c) 2016 The ZLToolKit project authors. All Rights Reserved.
+ * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
  *
- * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
+ * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -145,12 +145,10 @@ uint16_t SockUtil::inet_port(const struct sockaddr *addr) {
 
 int SockUtil::setCloseWait(int fd, int second) {
     linger m_sLinger;
-    //在调用closesocket()时还有数据未发送完，允许等待  [AUTO-TRANSLATED:8744ea4d]
     //Allow waiting when calling closesocket() with data still to be sent
-    // 若m_sLinger.l_onoff=0;则调用closesocket()后强制关闭  [AUTO-TRANSLATED:07e5d642]
     //Force close after calling closesocket() if m_sLinger.l_onoff = 0
     m_sLinger.l_onoff = (second > 0);
-    m_sLinger.l_linger = second; //设置等待时间为x秒
+    m_sLinger.l_linger = second; //Set the waiting time to x seconds
     int ret = setsockopt(fd, SOL_SOCKET, SO_LINGER, (char *) &m_sLinger, sizeof(linger));
     if (ret == -1) {
 #ifndef _WIN32
@@ -272,7 +270,7 @@ int SockUtil::setNoBlocked(int fd, bool noblock) {
 #else
     int ul = noblock;
 #endif //defined(_WIN32)
-    int ret = ioctl(fd, FIONBIO, &ul); //设置为非阻塞模式
+    int ret = ioctl(fd, FIONBIO, &ul); //Set to non-blocking mode
     if (ret == -1) {
         TraceL << "ioctl FIONBIO failed";
     }
@@ -342,12 +340,10 @@ private:
         lock_guard<mutex> lck(_mtx);
         auto it = _dns_cache.find(host);
         if (it == _dns_cache.end()) {
-            //没有记录  [AUTO-TRANSLATED:e99e45df]
             //No record
             return nullptr;
         }
         if (it->second.create_time + expireSec < time(nullptr)) {
-            //已过期  [AUTO-TRANSLATED:5dbe0c9a]
             //Expired
             _dns_cache.erase(it);
             return nullptr;
@@ -365,7 +361,6 @@ private:
 
     std::shared_ptr<struct addrinfo> getSystemDomainIP(const char *host) {
         struct addrinfo *answer = nullptr;
-        //阻塞式dns解析，可能被打断  [AUTO-TRANSLATED:89c8546f]
         //Blocking DNS resolution, may be interrupted
         int ret = -1;
         do {
@@ -465,10 +460,8 @@ static int bind_sock(int fd, const char *ifr_ip, uint16_t port, int family) {
 
 int SockUtil::connect(const char *host, uint16_t port, bool async, const char *local_ip, uint16_t local_port) {
     sockaddr_storage addr;
-    //优先使用ipv4地址  [AUTO-TRANSLATED:b7857afe]
     //Prefer IPv4 address
     if (!getDomainIP(host, port, addr, AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
-        //dns解析失败  [AUTO-TRANSLATED:1d0cd32d]
         //DNS resolution failed
         return -1;
     }
@@ -494,12 +487,10 @@ int SockUtil::connect(const char *host, uint16_t port, bool async, const char *l
     }
 
     if (::connect(sockfd, (sockaddr *) &addr, get_sock_len((sockaddr *)&addr)) == 0) {
-        //同步连接成功  [AUTO-TRANSLATED:da143548]
         //Synchronous connection successful
         return sockfd;
     }
     if (async && get_uv_error(true) == UV_EAGAIN) {
-        //异步连接成功  [AUTO-TRANSLATED:44ac1cad]
         //Asynchronous connection successful
         return sockfd;
     }
@@ -525,7 +516,6 @@ int SockUtil::listen(const uint16_t port, const char *local_ip, int back_log) {
         return -1;
     }
 
-    //开始监听  [AUTO-TRANSLATED:4404b1a8]
     //Start listening
     if (::listen(fd, back_log) == -1) {
         WarnL << "Listen socket failed: " << get_uv_errmsg(true);
@@ -635,7 +625,6 @@ void for_each_netAdapter_win32(FUN && fun) { //type: PIP_ADAPTER_INFO
         }
         adapterPtr = adapterPtr->Next;
     }
-    //释放内存空间  [AUTO-TRANSLATED:5310c138]
     //Release memory space
     delete[] adapterList;
 }
@@ -646,7 +635,6 @@ template<typename FUN>
 void for_each_netAdapter_posix(FUN &&fun){ //type: struct ifreq *
     struct ifconf ifconf;
     char buf[1024 * 10];
-    //初始化ifconf  [AUTO-TRANSLATED:d9c144ee]
     //Initialize ifconf
     ifconf.ifc_len = sizeof(buf);
     ifconf.ifc_buf = buf;
@@ -655,13 +643,12 @@ void for_each_netAdapter_posix(FUN &&fun){ //type: struct ifreq *
         WarnL << "Create socket failed: " << get_uv_errmsg(true);
         return;
     }
-    if (-1 == ioctl(sockfd, SIOCGIFCONF, &ifconf)) {    //获取所有接口信息
+    if (-1 == ioctl(sockfd, SIOCGIFCONF, &ifconf)) {    //Get all interface information
         WarnL << "ioctl SIOCGIFCONF failed: " << get_uv_errmsg(true);
         close(sockfd);
         return;
     }
     close(sockfd);
-    //接下来一个一个的获取IP地址  [AUTO-TRANSLATED:6484a8b6]
     //Get IP addresses one by one next
     struct ifreq * adapter = (struct ifreq*) buf;
     for (int i = (ifconf.ifc_len / sizeof(struct ifreq)); i > 0; --i,++adapter) {
@@ -674,38 +661,24 @@ void for_each_netAdapter_posix(FUN &&fun){ //type: struct ifreq *
 
 bool check_ip(string &address, const string &ip) {
     if (ip != "127.0.0.1" && ip != "0.0.0.0") {
-        /*获取一个有效IP
          /* Get a valid IP
-         * [AUTO-TRANSLATED:72b34922]
          */
         address = ip;
         uint32_t addressInNetworkOrder = htonl(inet_addr(ip.data()));
         if (/*(addressInNetworkOrder >= 0x0A000000 && addressInNetworkOrder < 0x0E000000) ||*/
             (addressInNetworkOrder >= 0xAC100000 && addressInNetworkOrder < 0xAC200000) ||
             (addressInNetworkOrder >= 0xC0A80000 && addressInNetworkOrder < 0xC0A90000)) {
-            //A类私有IP地址：  [AUTO-TRANSLATED:ef542777]
             //A-class private IP address:
-            //10.0.0.0～10.255.255.255  [AUTO-TRANSLATED:dbbf8c5f]
             //10.0.0.0～10.255.255.255
-            //B类私有IP地址：  [AUTO-TRANSLATED:7dfef625]
             //B-class private IP address:
-            //172.16.0.0～172.31.255.255  [AUTO-TRANSLATED:a96262fa]
             //172.16.0.0～172.31.255.255
-            //C类私有IP地址：  [AUTO-TRANSLATED:dc37505e]
             //C-class private IP address:
-            //192.168.0.0～192.168.255.255  [AUTO-TRANSLATED:c8c47e43]
             //192.168.0.0～192.168.255.255
-            //如果是私有地址 说明在nat内部  [AUTO-TRANSLATED:92007abb]
             //If it's a private address, it's inside the NAT
 
-            /* 优先采用局域网地址，该地址很可能是wifi地址
-             * 一般来说,无线路由器分配的地址段是BC类私有ip地址
-             * 而A类地址多用于蜂窝移动网络
              /* Prefer to use the local area network address, this address is likely to be the WiFi address
              * Generally, the address segment allocated by the wireless router is a BC-class private IP address
              * While A-class addresses are often used for cellular mobile networks
-             
-             * [AUTO-TRANSLATED:134ad072]
              */
             return true;
         }
@@ -820,7 +793,6 @@ int SockUtil::dissolveUdpSock(int fd) {
     }
     addr.ss_family = AF_UNSPEC;
     if (-1 == ::connect(fd, (struct sockaddr *)&addr, addr_len) && get_uv_error() != UV_EAFNOSUPPORT) {
-        // mac/ios时返回EAFNOSUPPORT错误  [AUTO-TRANSLATED:bbe0621c]
         //Returns EAFNOSUPPORT error on Mac/IOS
         WarnL << "Connect socket AF_UNSPEC failed: " << get_uv_errmsg(true);
         return -1;
@@ -845,7 +817,6 @@ string SockUtil::get_ifr_ip(const char *if_name) {
         IP_ADDR_STRING *ipAddr = &(adapter->IpAddressList);
         while (ipAddr){
             if (strcmp(if_name,adapter->AdapterName) == 0){
-                //ip匹配到了  [AUTO-TRANSLATED:6224132d]
                 //IP matched
                 ret.assign(ipAddr->IpAddress.String);
                 return true;
@@ -886,7 +857,6 @@ string SockUtil::get_ifr_name(const char *local_ip) {
         IP_ADDR_STRING *ipAddr = &(adapter->IpAddressList);
         while (ipAddr){
             if (strcmp(local_ip,ipAddr->IpAddress.String) == 0){
-                //ip匹配到了  [AUTO-TRANSLATED:6224132d]
                 //IP matched
                 ret.assign(adapter->AdapterName);
                 return true;
@@ -925,10 +895,8 @@ string SockUtil::get_ifr_mask(const char *if_name) {
     string ret;
     for_each_netAdapter_win32([&](PIP_ADAPTER_INFO adapter) {
         if (strcmp(if_name,adapter->AdapterName) == 0){
-            //找到了该网卡  [AUTO-TRANSLATED:c56438bb]
             //Found the network card
             IP_ADDR_STRING *ipAddr = &(adapter->IpAddressList);
-            //获取第一个ip的子网掩码  [AUTO-TRANSLATED:b6df1b9d]
             //Get the subnet mask of the first IP
             ret.assign(ipAddr->IpMask.String);
             return true;
@@ -971,7 +939,6 @@ string SockUtil::get_ifr_brdaddr(const char *if_name) {
     string ret;
     for_each_netAdapter_win32([&](PIP_ADAPTER_INFO adapter) {
         if (strcmp(if_name, adapter->AdapterName) == 0) {
-            //找到该网卡  [AUTO-TRANSLATED:23a900ba]
             //Found the network card
             IP_ADDR_STRING *ipAddr = &(adapter->IpAddressList);
             in_addr broadcast;
@@ -1155,7 +1122,6 @@ struct sockaddr_storage SockUtil::make_sockaddr(const char *host, uint16_t port)
     struct in_addr addr;
     struct in6_addr addr6;
     if (1 == inet_pton(AF_INET, host, &addr)) {
-        // host是ipv4  [AUTO-TRANSLATED:ba5c03a7]
         //Host is IPv4
         reinterpret_cast<struct sockaddr_in &>(storage).sin_addr = addr;
         reinterpret_cast<struct sockaddr_in &>(storage).sin_family = AF_INET;
@@ -1163,7 +1129,6 @@ struct sockaddr_storage SockUtil::make_sockaddr(const char *host, uint16_t port)
         return storage;
     }
     if (1 == inet_pton(AF_INET6, host, &addr6)) {
-        // host是ipv6  [AUTO-TRANSLATED:8048db0f]
         //Host is IPv6
         reinterpret_cast<struct sockaddr_in6 &>(storage).sin6_addr = addr6;
         reinterpret_cast<struct sockaddr_in6 &>(storage).sin6_family = AF_INET6;

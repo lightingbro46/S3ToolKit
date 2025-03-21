@@ -3,8 +3,8 @@ sudo apt-get install cmake
 sudo apt-get install libmysqlclient-dev
 sudo apt-get install libssl-dev
 cd ..
-git clone --depth=50 https://github.com/xia-chu/ZLToolKit.git
-cd ZLToolKit
+git clone --depth=50 https://github.com/S3MediaKit/S3ToolKit.git
+cd S3ToolKit
 mkdir -p linux_build
 rm -rf ./build
 ln -s ./linux_build ./build

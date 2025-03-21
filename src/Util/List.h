@@ -1,15 +1,15 @@
 ﻿/*
- * Copyright (c) 2016 The ZLToolKit project authors. All Rights Reserved.
+ * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
  *
- * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
+ * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef ZLTOOLKIT_LIST_H
-#define ZLTOOLKIT_LIST_H
+#ifndef S3TOOLKIT_LIST_H
+#define S3TOOLKIT_LIST_H
 
 #include <list>
 #include <type_traits>
@@ -215,4 +215,4 @@ public:
 #endif
 
 } /* namespace toolkit */
-#endif //ZLTOOLKIT_LIST_H
+#endif //S3TOOLKIT_LIST_H

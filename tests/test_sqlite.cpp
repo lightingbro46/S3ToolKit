@@ -34,13 +34,13 @@ int main() {
 
     // Synchronous insertion
     SqliteWriter insertSql("insert into test_db.test_table(user_name,user_pwd) values('?','?');");
-    insertSql<< "zltoolkit" << "123456" << sqlRet;
+    insertSql<< "s3toolkit" << "123456" << sqlRet;
     // We can know how many pieces of data were inserted, and we can get the rowID of the newly inserted (first) data
     DebugL << "AffectedRows:" << insertSql.getAffectedRows() << ",RowID:" << insertSql.getRowID();
 
     // Synchronous query
     SqliteWriter sqlSelect("select user_id , user_pwd from test_db.test_table where user_name='?' limit 1;") ;
-    sqlSelect << "zltoolkit" ;
+    sqlSelect << "s3toolkit" ;
 
     vector<vector<string> > sqlRet0;
     vector<list<string> > sqlRet1;
@@ -73,7 +73,7 @@ int main() {
 
     // Asynchronous deletion
     SqliteWriter insertDel("delete from test_db.test_table where user_name='?';");
-    insertDel << "zltoolkit" << endl;
+    insertDel << "s3toolkit" << endl;
 
     // Note!
     // If the "<<" operator of SqliteWriter is followed by SqlitePool::SqlRetType type, it indicates a synchronous operation and waits for the result

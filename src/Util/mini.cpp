@@ -1,6 +1,5 @@
 ﻿/*
  * Copyright (c) 2015 r-lyeh (https://github.com/r-lyeh)
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
