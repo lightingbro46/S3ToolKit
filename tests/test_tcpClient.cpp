@@ -26,27 +26,22 @@ public:
     }
 protected:
     virtual void onConnect(const SockException &ex) override{
-        //连接结果事件  [AUTO-TRANSLATED:46887902]
         // Connection established event
         InfoL << (ex ?  ex.what() : "success");
     }
     virtual void onRecv(const Buffer::Ptr &pBuf) override{
-        //接收数据事件  [AUTO-TRANSLATED:397ef7e4]
         // Data received event
         DebugL << pBuf->data() << " from port:" << get_peer_port();
     }
     virtual void onFlush() override{
-        //发送阻塞后，缓存清空事件  [AUTO-TRANSLATED:46e8bca0]
         // Send blocked, cache cleared event
         DebugL;
     }
     virtual void onError(const SockException &ex) override{
-        //断开连接事件，一般是EOF  [AUTO-TRANSLATED:7359fecf]
         // Disconnected event, usually EOF
         WarnL << ex.what();
     }
     virtual void onManager() override{
-        //定时发送数据到服务器  [AUTO-TRANSLATED:688c9148]
         // Periodically send data to the server
         auto buf = BufferRaw::create();
         if(buf){
@@ -63,21 +58,19 @@ private:
 
 
 int main() {
-    // 设置日志系统  [AUTO-TRANSLATED:45646031]
     // Set up the logging system
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-    TestClient::Ptr client(new TestClient());//必须使用智能指针
-    client->startConnect("127.0.0.1",9000);//连接服务器
+    TestClient::Ptr client(new TestClient());//Must use smart pointers
+    client->startConnect("127.0.0.1",9000);//Connect to the server
 
-    TcpClientWithSSL<TestClient>::Ptr clientSSL(new TcpClientWithSSL<TestClient>());//必须使用智能指针
-    clientSSL->startConnect("127.0.0.1",9001);//连接服务器
+    TcpClientWithSSL<TestClient>::Ptr clientSSL(new TcpClientWithSSL<TestClient>());//Must use smart pointers
+    clientSSL->startConnect("127.0.0.1",9001);//Connect to the server
 
-    //退出程序事件处理  [AUTO-TRANSLATED:80065cb7]
     // Exit program event handling
     static semaphore sem;
-    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
+    signal(SIGINT, [](int) { sem.post(); });// Set the exit signal
     sem.wait();
     return 0;
 }

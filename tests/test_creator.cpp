@@ -13,7 +13,6 @@
 using namespace std;
 using namespace toolkit;
 
-//测试onCreate和onDestory同时存在  [AUTO-TRANSLATED:152351be]
 // Test when both onCreate and onDestroy exist
 class TestA {
 public:
@@ -34,7 +33,6 @@ public:
     }
 };
 
-//测试只存在onCreate  [AUTO-TRANSLATED:721019f3]
 // Test when only onCreate exists
 class TestB {
 public:
@@ -51,7 +49,6 @@ public:
     }
 };
 
-//测试只存在onDestory  [AUTO-TRANSLATED:65090f10]
 // Test when only onDestroy exists
 class TestC {
 public:
@@ -68,7 +65,6 @@ public:
     }
 };
 
-//测试onCreate和onDestory返回值不为void时  [AUTO-TRANSLATED:cafa864e]
 // Test when onCreate and onDestroy return values are not void
 class TestD {
 public:
@@ -91,7 +87,6 @@ public:
     }
 };
 
-//测试onCreate和onDestory都不存在时  [AUTO-TRANSLATED:475fb8f1]
 // Test when neither onCreate nor onDestroy exist
 class TestE {
 public:
@@ -104,7 +99,6 @@ public:
     }
 };
 
-//测试自定义构造函数  [AUTO-TRANSLATED:13ffcdcf]
 // Test custom constructor
 class TestF {
 public:
@@ -117,7 +111,6 @@ public:
     }
 };
 
-//测试自定义onCreate函数  [AUTO-TRANSLATED:35c11999]
 // Test custom onCreate function
 class TestH {
 public:
@@ -135,7 +128,6 @@ public:
     }
 };
 
-//测试onDestory函数抛异常  [AUTO-TRANSLATED:6d70c971]
 // Test onDestroy function throws an exception
 class TestI {
 public:
@@ -153,7 +145,6 @@ public:
     }
 };
 
-//测试自定义onDestory，onDestory将被忽略调用  [AUTO-TRANSLATED:5ab2ba7d]
 // Test custom onDestroy, onDestroy will be ignored when called
 class TestJ {
 public:
@@ -171,7 +162,6 @@ public:
 };
 
 int main() {
-    //初始化日志系统  [AUTO-TRANSLATED:25c549de]
     // Initialize the logging system
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());

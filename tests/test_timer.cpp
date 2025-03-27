@@ -19,7 +19,6 @@ using namespace std;
 using namespace toolkit;
 
 int main() {
-    //设置日志  [AUTO-TRANSLATED:50372045]
     // Set log
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
@@ -27,27 +26,26 @@ int main() {
 
     Ticker ticker0;
     Timer::Ptr timer0 = std::make_shared<Timer>(0.5f,[&](){
-        TraceL << "timer0重复:" << ticker0.elapsedTime();
+        TraceL << "timer0,Repeat:" << ticker0.elapsedTime();
         ticker0.resetTime();
         return true;
     }, nullptr);
 
     Timer::Ptr timer1 = std::make_shared<Timer>(1.0f,[](){
-        DebugL << "timer1不再重复";
+        DebugL << "timer1,Will no longer be repeated";
         return false;
     },nullptr);
 
     Ticker ticker2;
     Timer::Ptr timer2 = std::make_shared<Timer>(2.0f,[&]() -> bool {
-        InfoL << "timer2,测试任务中抛异常" << ticker2.elapsedTime();
+        InfoL << "timer2,Exceed exceptions in test task:" << ticker2.elapsedTime();
         ticker2.resetTime();
-        throw std::runtime_error("timer2,测试任务中抛异常");
+        throw std::runtime_error("timer2,Exceed exceptions in test task");
     },nullptr);
 
-    //退出程序事件处理  [AUTO-TRANSLATED:80065cb7]
     // Exit program event handling
     static semaphore sem;
-    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
+    signal(SIGINT, [](int) { sem.post(); });// Set the exit signal
     sem.wait();
     return 0;
 }

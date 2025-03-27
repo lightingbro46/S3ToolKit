@@ -73,11 +73,11 @@ public:
     OptionParser(const OptionCompleted &cb = nullptr, bool enable_empty_args = true) {
         _on_completed = cb;
         _enable_empty_args = enable_empty_args;
-        _helper = Option('h', "help", Option::ArgNone, nullptr, false, "打印此信息",
+        _helper = Option('h', "help", Option::ArgNone, nullptr, false, "Print this information",
                          [this](const std::shared_ptr<std::ostream> &stream,const std::string &arg)->bool {
-             static const char *argsType[] = {"无参", "有参", "选参"};
-             static const char *mustExist[] = {"选填", "必填"};
-             static std::string defaultPrefix = "默认:";
+             static const char *argsType[] = {"No parameters", "There are parameters", "Select the parameters"};
+             static const char *mustExist[] = {"Optional", "Required"};
+             static std::string defaultPrefix = "Default:";
              static std::string defaultNull = "null";
 
              std::stringstream printer;
@@ -97,7 +97,7 @@ public:
              }
              for (auto &pr : _map_options) {
                  auto &opt = pr.second;
-                 //打印短参和长参名
+                 //Print short and long registry names
                  if (opt._short_opt) {
                      printer << "  -" << opt._short_opt << "  --" << opt._long_opt;
                  } else {
@@ -106,9 +106,9 @@ public:
                  for (size_t i = 0; i < maxLen_longOpt - opt._long_opt.size(); ++i) {
                      printer << " ";
                  }
-                 //打印是否有参
+                 //Printing if there are parameters
                  printer << "  " << argsType[opt._type];
-                 //打印默认参数
+                 //Print default parameters
                  std::string defaultValue = defaultNull;
                  if (opt._default_value) {
                      defaultValue = *opt._default_value;
@@ -117,9 +117,9 @@ public:
                  for (size_t i = 0; i < maxLen_default - defaultValue.size(); ++i) {
                      printer << " ";
                  }
-                 //打印是否必填参数
+                 //Whether to print the required parameters
                  printer << "  " << mustExist[opt._must_exist];
-                 //打印描述
+                 //Print description
                  printer << "  " << opt._des << std::endl;
              }
              throw std::invalid_argument(printer.str());
@@ -290,7 +290,7 @@ public:
         auto it = _cmd_map.find(cmd);
         if (it == _cmd_map.end()) {
             std::stringstream ss;
-            ss << "  未识别的命令\"" << cmd << "\",输入 \"help\" 获取帮助.";
+            ss << "  Unrecognized commands\"" << cmd << "\", enter \"help\" to get help.";
             throw std::invalid_argument(ss.str());
         }
         (*it->second)((int) argc, &argv[0], stream);
@@ -323,7 +323,7 @@ private:
     std::map<std::string, std::shared_ptr<CMD> > _cmd_map;
 };
 
-//帮助命令(help)，该命令默认已注册
+//Help command (help), which is registered by default
 class CMD_help : public CMD {
 public:
     CMD_help() {
@@ -333,13 +333,13 @@ public:
     }
 
     const char *description() const override {
-        return "打印帮助信息";
+        return "Print help information";
     }
 };
 
 class ExitException : public std::exception {};
 
-//退出程序命令(exit)，该命令默认已注册
+//Exit the program command (exit), which is registered by default
 class CMD_exit : public CMD {
 public:
     CMD_exit() {
@@ -349,14 +349,14 @@ public:
     }
 
     const char *description() const override {
-        return "退出shell";
+        return "Exit shell";
     }
 };
 
-//退出程序命令(quit),该命令默认已注册
+//Exit the program command (quit), the command is registered by default
 #define CMD_quit CMD_exit
 
-//清空屏幕信息命令(clear)，该命令默认已注册
+//Clear screen information command (clear), this command is registered by default
 class CMD_clear : public CMD {
 public:
     CMD_clear() {
@@ -366,7 +366,7 @@ public:
     }
 
     const char *description() const {
-        return "清空屏幕输出";
+        return "Clear screen output";
     }
 
 private:

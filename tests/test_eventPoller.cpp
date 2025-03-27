@@ -19,17 +19,12 @@ using namespace std;
 using namespace toolkit;
 
 /**
- * cpu负载均衡测试
- * @return
  * CPU load balancing test
  * @return
- 
- * [AUTO-TRANSLATED:620fe7ab]
  */
 int main() {
     static bool  exit_flag = false;
     signal(SIGINT, [](int) { exit_flag = true; });
-    //设置日志  [AUTO-TRANSLATED:50372045]
     // Set log
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
 
@@ -42,14 +37,14 @@ int main() {
             for(auto load : vec){
                 printer << load << "-";
             }
-            DebugL << "cpu负载:" << printer;
+            DebugL << "CPU load:" << printer;
 
             EventPollerPool::Instance().getExecutorDelay([](const vector<int> &vec){
                 _StrPrinter printer;
                 for(auto delay : vec){
                     printer << delay << "-";
                 }
-                DebugL << "cpu任务执行延时:" << printer;
+                DebugL << "CPU task execution delay:" << printer;
             });
             ticker.resetTime();
         }

@@ -22,7 +22,6 @@ int main() {
     signal(SIGINT,[](int ){
         exit(0);
     });
-    //初始化日志系统  [AUTO-TRANSLATED:25c549de]
     // Initialize the logging system
     Logger::Instance().add(std::make_shared<ConsoleChannel> ());
 
@@ -33,20 +32,19 @@ int main() {
     for (int i = 0 ; i < 1000*10000;++i){
         pool.async([&](){
            if(++count >= 1000*10000){
-               InfoL << "执行1000万任务总共耗时:" << ticker.elapsedTime() << "ms";
+               InfoL << "The total time is spent executing 10 million tasks:" << ticker.elapsedTime() << "ms";
            }
         });
     }
-    InfoL << "1000万任务入队耗时:" << ticker.elapsedTime() << "ms" << endl;
+    InfoL << "Time-consuming to join the team of 10 million tasks:" << ticker.elapsedTime() << "ms" << endl;
     uint64_t  lastCount = 0 ,nowCount = 1;
     ticker.resetTime();
-    //此处才开始启动线程  [AUTO-TRANSLATED:b68d0810]
     // The thread starts here
     pool.start();
     while (true){
         sleep(1);
         nowCount = count.load();
-        InfoL << "每秒执行任务数:" << nowCount - lastCount;
+        InfoL << "Number of tasks executed per second:" << nowCount - lastCount;
         if(nowCount - lastCount == 0){
             break;
         }

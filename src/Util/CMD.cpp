@@ -21,7 +21,6 @@ using namespace std;
 
 namespace toolkit {
 
-//默认注册exit/quit/help/clear命令  [AUTO-TRANSLATED:1411f05e]
 //Default registration of exit/quit/help/clear commands
 static onceToken s_token([]() {
     REGIST_CMD(exit)
@@ -74,9 +73,8 @@ void OptionParser::operator()(mINI &all_args, int argc, char *argv[], const std:
     opterr = 0;
     while ((index = getopt_long(argc, argv, &str_short_opt[0], &vec_long_opt[0], nullptr)) != -1) {
         stringstream ss;
-        ss << "  未识别的选项,输入\"-h\"获取帮助.";
+        ss << "  For unrecognized options, enter \"-h\" for help.";
         if (index < 0xFF) {
-            //短参数  [AUTO-TRANSLATED:87b4c1df]
             //Short parameters
             auto it = _map_char_index.find(index);
             if (it == _map_char_index.end()) {
@@ -98,7 +96,6 @@ void OptionParser::operator()(mINI &all_args, int argc, char *argv[], const std:
     }
     for (auto &pr : _map_options) {
         if (pr.second._default_value && all_args.find(pr.second._long_opt) == all_args.end()) {
-            //有默认值,赋值默认值  [AUTO-TRANSLATED:9a82f49c]
             //Has default value, assigns default value
             all_args.emplace(pr.second._long_opt, *pr.second._default_value);
         }
@@ -107,7 +104,7 @@ void OptionParser::operator()(mINI &all_args, int argc, char *argv[], const std:
         if (pr.second._must_exist) {
             if (all_args.find(pr.second._long_opt) == all_args.end()) {
                 stringstream ss;
-                ss << "  参数\"" << pr.second._long_opt << "\"必须提供,输入\"-h\"选项获取帮助";
+                ss << " Parameters \"" << pr.second._long_opt << "\" must be provided, enter \"-h\" options to get help";
                 throw std::invalid_argument(ss.str());
             }
         }

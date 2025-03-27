@@ -15,7 +15,6 @@ using namespace std;
 using namespace toolkit;
 
 int main() {
-    //初始化日志系统  [AUTO-TRANSLATED:25c549de]
     // Initialize the logging system
     Logger::Instance().add(std::make_shared<ConsoleChannel> ());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
