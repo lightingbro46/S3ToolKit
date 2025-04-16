@@ -1,27 +1,6 @@
-﻿/*
- * Copyright (c) 2006 Ryan Martell. (rdm4@martellventures.com)
- *
- * This file is part of FFmpeg.
- *
- * FFmpeg is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * FFmpeg is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with FFmpeg; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
-
-/**
+﻿/**
  * @file
  * @brief Base64 encode/decode
- * @author Ryan Martell <rdm4@martellventures.com> (with lots of Michael)
  */
 
 //#include "common.h"
@@ -70,8 +49,7 @@ int av_base64_decode(uint8_t *out, const char *in, int out_size)
 
 /*****************************************************************************
 * b64_encode: Stolen from VLC's http.c.
-* Simplified by Michael.
-* Fixed edge cases and made it work from data (vs. strings) by Ryan.
+* Fixed edge cases and made it work from data (vs. strings)
 *****************************************************************************/
 
 char *av_base64_encode_l(char *out, int *out_size, const uint8_t *in, int in_size) {

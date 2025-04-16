@@ -1,23 +1,6 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#ifndef SEMAPHORE_H_
+﻿#ifndef SEMAPHORE_H_
 #define SEMAPHORE_H_
 
-/*
- * 目前发现信号量在32位的系统上有问题，
- * 休眠的线程无法被正常唤醒，先禁用之
-#if defined(__linux__)
-#include <semaphore.h>
-#define HAVE_SEM
-#endif //HAVE_SEM
  /*
  * Currently, it is found that semaphores have issues on 32-bit systems,
  * sleeping threads cannot be normally woken up, disable them for now
@@ -25,8 +8,6 @@
  #include <semaphore.h>
  #define HAVE_SEM
  #endif //HAVE_SEM
- 
- * [AUTO-TRANSLATED:8823f395]
 */
 
 #include <mutex>

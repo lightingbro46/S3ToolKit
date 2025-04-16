@@ -9,7 +9,6 @@ namespace toolkit {
 template<typename T>
 struct function_traits;
 
-//普通函数  [AUTO-TRANSLATED:569a9de3]
 //Ordinary function
 template<typename Ret, typename... Args>
 struct function_traits<Ret(Args...)>
@@ -29,7 +28,6 @@ public:
     };
 };
 
-//函数指针  [AUTO-TRANSLATED:bc15033e]
 //Function pointer
 template<typename Ret, typename... Args>
 struct function_traits<Ret(*)(Args...)> : function_traits<Ret(Args...)>{};
@@ -48,7 +46,6 @@ FUNCTION_TRAITS(const)
 FUNCTION_TRAITS(volatile)
 FUNCTION_TRAITS(const volatile)
 
-//函数对象  [AUTO-TRANSLATED:a0091563]
 //Function object
 template<typename Callable>
 struct function_traits : function_traits<decltype(&Callable::operator())>{};

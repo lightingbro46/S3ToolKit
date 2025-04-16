@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include "SSLBox.h"
+﻿#include "SSLBox.h"
 #include "onceToken.h"
 #include "SSLUtil.h"
 
@@ -23,7 +13,6 @@
 #endif //defined(ENABLE_OPENSSL)
 
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-//openssl版本是否支持sni  [AUTO-TRANSLATED:4c92a880]
 //Is the OpenSSL version SNI supported
 #define SSL_ENABLE_SNI
 #endif
@@ -121,11 +110,9 @@ int SSL_Initor::findCertificate(SSL *ssl, int *, void *arg) {
     const char *vhost = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
 
     if (vhost && vhost[0] != '\0') {
-        //根据域名找到证书  [AUTO-TRANSLATED:783a55d8]
         //Find the certificate based on the domain name
         ctx = ref.getSSLCtx(vhost, (bool) (arg)).get();
         if (!ctx) {
-            //未找到对应的证书  [AUTO-TRANSLATED:d4550e6f]
             //No corresponding certificate found
             std::lock_guard<std::recursive_mutex> lck(ref._mtx);
             WarnL << "Can not find any certificate of host: " << vhost
@@ -134,13 +121,11 @@ int SSL_Initor::findCertificate(SSL *ssl, int *, void *arg) {
     }
 
     if (!ctx) {
-        //客户端未指定域名或者指定的证书不存在，那么选择一个默认的证书  [AUTO-TRANSLATED:35115b5c]
         //The client did not specify a domain name or the specified certificate does not exist, so a default certificate is selected
         ctx = ref.getSSLCtx("", (bool) (arg)).get();
     }
 
     if (!ctx) {
-        //未有任何有效的证书  [AUTO-TRANSLATED:e1d7f5b7]
         //No valid certificate available
         WarnL << "Can not find any available certificate of host: " << (vhost ? vhost : "default host")
               << ", tls handshake failed";
@@ -174,7 +159,6 @@ bool SSL_Initor::setContext(const string &vhost, const shared_ptr<SSL_CTX> &ctx,
             _default_vhost[server_mode] = vhost;
         }
         if (vhost.find("*.") == 0) {
-            //通配符证书  [AUTO-TRANSLATED:faeefee7]
             //Wildcard certificate
             _ctxs_wildcards[server_mode][vhost.substr(1)] = ctx;
         }
@@ -189,7 +173,6 @@ bool SSL_Initor::setContext(const string &vhost, const shared_ptr<SSL_CTX> &ctx,
 
 void SSL_Initor::setupCtx(SSL_CTX *ctx) {
 #if defined(ENABLE_OPENSSL)
-    //加载默认信任证书  [AUTO-TRANSLATED:4d98f092]
     //Load default trusted certificate
     SSLUtil::loadDefaultCAs(ctx);
     SSL_CTX_set_cipher_list(ctx, "ALL:!ADH:!LOW:!EXP:!MD5:!3DES:!DES:!IDEA:!RC4:!SEED-SHA:@STRENGTH");
@@ -244,11 +227,9 @@ shared_ptr<SSL> SSL_Initor::makeSSL(bool server_mode) {
     std::lock_guard<std::recursive_mutex> lck(_mtx);
 #if defined(ENABLE_OPENSSL)
 #ifdef SSL_ENABLE_SNI
-    //openssl 版本支持SNI  [AUTO-TRANSLATED:b8029f6c]
     //OpenSSL version supports SNI
     return SSLUtil::makeSSL(_ctx_empty[server_mode].get());
 #else
-    //openssl 版本不支持SNI，选择默认证书  [AUTO-TRANSLATED:cedb5f02]
     //OpenSSL version does not support SNI, select default certificate
     return SSLUtil::makeSSL(getSSLCtx("",server_mode).get());
 #endif//SSL_CTRL_SET_TLSEXT_HOSTNAME
@@ -296,7 +277,6 @@ std::shared_ptr<SSL_CTX> SSL_Initor::getSSLCtx_l(const string &vhost_in, bool se
         if (!_default_vhost[server_mode].empty()) {
             vhost = _default_vhost[server_mode];
         } else {
-            //没默认主机，选择空主机  [AUTO-TRANSLATED:99a7d8d4]
             //No default host, select empty host
             if (server_mode) {
                 WarnL << "Server with ssl must have certification and key";
@@ -304,7 +284,6 @@ std::shared_ptr<SSL_CTX> SSL_Initor::getSSLCtx_l(const string &vhost_in, bool se
             return _ctx_empty[server_mode];
         }
     }
-    //根据主机名查找证书  [AUTO-TRANSLATED:dcc98736]
     //Find certificate by hostname
     auto it = _ctxs[server_mode].find(vhost);
     if (it == _ctxs[server_mode].end()) {
@@ -368,13 +347,11 @@ void SSL_Box::onRecv(const Buffer::Ptr &buffer) {
     while (offset < buffer->size()) {
         auto nwrite = BIO_write(_read_bio, buffer->data() + offset, buffer->size() - offset);
         if (nwrite > 0) {
-            //部分或全部写入bio完毕  [AUTO-TRANSLATED:baabfef4]
             //Partial or full write to bio completed
             offset += nwrite;
             flush();
             continue;
         }
-        //nwrite <= 0,出现异常  [AUTO-TRANSLATED:986e8f36]
         //nwrite <= 0, an error occurred
         ErrorL << "Ssl error on BIO_write: " << SSLUtil::getLastError();
         shutdown();
@@ -426,12 +403,10 @@ void SSL_Box::flushWriteBio() {
     } while (nread > 0 && buf_size - total > 0);
 
     if (!total) {
-        //未有数据  [AUTO-TRANSLATED:9ae3aaa5]
         //No data available
         return;
     }
 
-    //触发此次回调  [AUTO-TRANSLATED:dc10c264]
     //Trigger this callback
     buffer_bio->data()[total] = '\0';
     buffer_bio->setSize(total);
@@ -440,7 +415,6 @@ void SSL_Box::flushWriteBio() {
     }
 
     if (nread > 0) {
-        //还有剩余数据，读取剩余数据  [AUTO-TRANSLATED:008f4187]
         //Still have remaining data, read the remaining data
         flushWriteBio();
     }
@@ -462,12 +436,10 @@ void SSL_Box::flushReadBio() {
     } while (nread > 0 && buf_size - total > 0);
 
     if (!total) {
-        //未有数据  [AUTO-TRANSLATED:9ae3aaa5]
         //No data available
         return;
     }
 
-    //触发此次回调  [AUTO-TRANSLATED:dc10c264]
     //Trigger this callback
     buffer_bio->data()[total] = '\0';
     buffer_bio->setSize(total);
@@ -476,7 +448,6 @@ void SSL_Box::flushReadBio() {
     }
 
     if (nread > 0) {
-        //还有剩余数据，读取剩余数据  [AUTO-TRANSLATED:008f4187]
         //Still have remaining data, read the remaining data
         flushReadBio();
     }
@@ -496,13 +467,11 @@ void SSL_Box::flush() {
 
     flushReadBio();
     if (!SSL_is_init_finished(_ssl.get()) || _buffer_send.empty()) {
-        //ssl未握手结束或没有需要发送的数据  [AUTO-TRANSLATED:39f8490c]
         //SSL handshake not finished or no data to send
         flushWriteBio();
         return;
     }
 
-    //加密数据并发送  [AUTO-TRANSLATED:c09fdbd0]
     //Encrypt data and send
     while (!_buffer_send.empty()) {
         auto &front = _buffer_send.front();
@@ -510,26 +479,22 @@ void SSL_Box::flush() {
         while (offset < front->size()) {
             auto nwrite = SSL_write(_ssl.get(), front->data() + offset, front->size() - offset);
             if (nwrite > 0) {
-                //部分或全部写入完毕  [AUTO-TRANSLATED:661163d2]
                 //Partial or complete write finished
                 offset += nwrite;
                 flushWriteBio();
                 continue;
             }
-            //nwrite <= 0,出现异常  [AUTO-TRANSLATED:986e8f36]
             //nwrite <= 0, an exception occurred
             break;
         }
 
         if (offset != front->size()) {
-            //这个包未消费完毕，出现了异常,清空数据并断开ssl  [AUTO-TRANSLATED:1823c65a]
             //This package has not been fully consumed, an exception occurred, clear data and disconnect ssl
             ErrorL << "Ssl error on SSL_write: " << SSLUtil::getLastError();
             shutdown();
             break;
         }
 
-        //这个包消费完毕，开始消费下一个包  [AUTO-TRANSLATED:6fa31240]
         //This package has been fully consumed, start consuming the next package
         _buffer_send.pop_front();
     }

@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include "TcpClient.h"
+﻿#include "TcpClient.h"
 
 using namespace std;
 
@@ -19,7 +9,6 @@ StatisticImp(TcpClient)
 TcpClient::TcpClient(const EventPoller::Ptr &poller) : SocketHelper(nullptr) {
     setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
     setOnCreateSocket([](const EventPoller::Ptr &poller) {
-        //TCP客户端默认开启互斥锁  [AUTO-TRANSLATED:94fad9cd]
         //TCP client defaults to enabling mutex lock
         return Socket::createSocket(poller, true);
     });
@@ -36,13 +25,10 @@ void TcpClient::shutdown(const SockException &ex) {
 
 bool TcpClient::alive() const {
     if (_timer) {
-        //连接中或已连接  [AUTO-TRANSLATED:bf2b744a]
         //Connecting or already connected
         return true;
     }
-    //在websocket client(s3mediakit)相关代码中，  [AUTO-TRANSLATED:d309d587]
     //In websocket client (s3mediakit) related code,
-    //_timer一直为空，但是socket fd有效，alive状态也应该返回true  [AUTO-TRANSLATED:344889b8]
     //_timer is always empty, but socket fd is valid, and alive status should also return true
     auto sock = getSock();
     return sock && sock->alive();
@@ -72,7 +58,6 @@ void TcpClient::startConnect(const string &url, uint16_t port, float timeout_sec
             return;
         }
         if (sock_ptr != strong_self->getSock().get()) {
-            //已经重连socket，上次的socket的事件忽略掉  [AUTO-TRANSLATED:9bf35a7a]
             //Socket has been reconnected, last socket's event is ignored
             return;
         }
@@ -93,7 +78,6 @@ void TcpClient::startConnect(const string &url, uint16_t port, float timeout_sec
 void TcpClient::onSockConnect(const SockException &ex) {
     TraceL << getIdentifier() << " connect result: " << ex;
     if (ex) {
-        //连接失败  [AUTO-TRANSLATED:33415985]
         //Connection failed
         _timer.reset();
         onConnect(ex);
@@ -108,7 +92,6 @@ void TcpClient::onSockConnect(const SockException &ex) {
             return false;
         }
         if (sock_ptr != strong_self->getSock().get()) {
-            //已经重连socket，上传socket的事件忽略掉  [AUTO-TRANSLATED:243a8c95]
             //Socket has been reconnected, upload socket's event is ignored
             return false;
         }
@@ -122,7 +105,6 @@ void TcpClient::onSockConnect(const SockException &ex) {
             return;
         }
         if (sock_ptr != strong_self->getSock().get()) {
-            //已经重连socket，上传socket的事件忽略掉  [AUTO-TRANSLATED:243a8c95]
             //Socket has been reconnected, upload socket's event is ignored
             return;
         }

@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2021 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include "Server.h"
+﻿#include "Server.h"
 
 using namespace std;
 

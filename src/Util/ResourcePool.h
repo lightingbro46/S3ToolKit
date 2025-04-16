@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#ifndef UTIL_RECYCLEPOOL_H_
+﻿#ifndef UTIL_RECYCLEPOOL_H_
 #define UTIL_RECYCLEPOOL_H_
 
 #include "List.h"
@@ -37,28 +27,18 @@ public:
     shared_ptr_imp() {}
 
     /**
-     * 构造智能指针
-     * @param ptr 裸指针
-     * @param weakPool 管理本指针的循环池
-     * @param quit 对接是否放弃循环使用
      * Constructs a smart pointer
      * @param ptr Raw pointer
      * @param weakPool Circular pool managing this pointer
      * @param quit Whether to give up circular reuse
-     
-     * [AUTO-TRANSLATED:5af6d6a5]
      */
     shared_ptr_imp(
         C *ptr, const std::weak_ptr<ResourcePool_l<C>> &weakPool, std::shared_ptr<std::atomic_bool> quit,
         const std::function<void(C *)> &on_recycle);
 
     /**
-     * 放弃或恢复回到循环池继续使用
-     * @param flag
      * Abandon or recover to continue using in the circular pool
      * @param flag
-     
-     * [AUTO-TRANSLATED:eda3e499]
      */
     void quit(bool flag = true) {
         if (_quit) {
@@ -108,7 +88,6 @@ public:
         return std::shared_ptr<C>(getPtr(), [weak_self](C *ptr) {
             auto strongPool = weak_self.lock();
             if (strongPool) {
-                //放入循环池  [AUTO-TRANSLATED:5ec73a78]
                 //Put into circular pool
                 strongPool->recycle(ptr);
             } else {
@@ -121,7 +100,6 @@ private:
     void recycle(C *obj) {
         auto is_busy = _busy.test_and_set();
         if (!is_busy) {
-            //获取到锁  [AUTO-TRANSLATED:6eb7c6e9]
             //Acquired lock
             if (_objs.size() >= _pool_size) {
                 delete obj;
@@ -130,7 +108,6 @@ private:
             }
             _busy.clear();
         } else {
-            //未获取到锁  [AUTO-TRANSLATED:2b5e8adb]
             //Failed to acquire lock
             delete obj;
         }
@@ -140,7 +117,6 @@ private:
         C *ptr;
         auto is_busy = _busy.test_and_set();
         if (!is_busy) {
-            //获取到锁  [AUTO-TRANSLATED:6eb7c6e9]
             //Acquired lock
             if (_objs.size() == 0) {
                 ptr = _alloc();
@@ -150,7 +126,6 @@ private:
             }
             _busy.clear();
         } else {
-            //未获取到锁  [AUTO-TRANSLATED:2b5e8adb]
             //Failed to acquire lock
             ptr = _alloc();
         }
@@ -168,12 +143,8 @@ private:
 };
 
 /**
- * 循环池，注意，循环池里面的对象不能继承enable_shared_from_this！
- * @tparam C
  * Circular pool, note that objects in the circular pool cannot inherit from enable_shared_from_this!
  * @tparam C
- 
- * [AUTO-TRANSLATED:e08caac8]
  */
 template <typename C>
 class ResourcePool {
@@ -192,11 +163,9 @@ public:
 #endif // defined(SUPPORT_DYNAMIC_TEMPLATE)
     void setSize(size_t size) { pool->setSize(size); }
 
-    //获取一个对象，性能差些，但是功能丰富些  [AUTO-TRANSLATED:88b9a207]
     //Get an object, performance is slightly worse, but with more features
     ValuePtr obtain(const std::function<void(C *)> &on_recycle = nullptr) { return pool->obtain(on_recycle); }
 
-    //获取一个对象，性能好些  [AUTO-TRANSLATED:0032c7ca]
     //Get an object, performance is slightly better
     std::shared_ptr<C> obtain2() { return pool->obtain2(); }
 
@@ -215,7 +184,6 @@ shared_ptr_imp<C>::shared_ptr_imp(C *ptr,
             }
             auto strongPool = weakPool.lock();
             if (strongPool && !(*quit)) {
-                //循环池还在并且不放弃放入循环池  [AUTO-TRANSLATED:96e856da]
                 //Loop pool is still in and does not give up putting into loop pool
                 strongPool->recycle(ptr);
             } else {

@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include "WorkThreadPool.h"
+﻿#include "WorkThreadPool.h"
 
 namespace toolkit {
 
@@ -26,7 +16,6 @@ EventPoller::Ptr WorkThreadPool::getPoller() {
 }
 
 WorkThreadPool::WorkThreadPool() {
-    //最低优先级  [AUTO-TRANSLATED:cd1f0dbc]
     //Lowest priority
     addPoller("work poller", s_pool_size, ThreadPool::PRIORITY_LOWEST, false, s_enable_cpu_affinity);
 }

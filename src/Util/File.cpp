@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#if defined(_WIN32)
+﻿#if defined(_WIN32)
 #include <io.h>   
 #include <direct.h>
 #else
@@ -71,7 +61,6 @@ struct dirent *readdir(DIR *d) {
         dir->d_type = 1;
     }
     if (d->index) {
-        //覆盖前释放内存  [AUTO-TRANSLATED:1cb478a1]
         //Release memory before covering
         free(d->index);
         d->index = nullptr;
@@ -84,13 +73,11 @@ int closedir(DIR *d) {
     if (!d) {
         return -1;
     }
-    //关闭句柄  [AUTO-TRANSLATED:ec4f562d]
     //Close handle
     if (d->handle != INVALID_HANDLE_VALUE) {
         FindClose(d->handle);
         d->handle = INVALID_HANDLE_VALUE;
     }
-    //释放内存  [AUTO-TRANSLATED:0f4046dc]
     //Release memory
     if (d->index) {
         free(d->index);
@@ -114,8 +101,8 @@ FILE *File::create_file(const std::string &file, const std::string &mode) {
         if (dir.length() == 0) {
             break;
         }
-        if (_access(dir.data(), 0) == -1) { //access函数是查看是不是存在
-            if (mkdir(dir.data(), 0777) == -1) {  //如果不存在就用mkdir函数来创建
+        if (_access(dir.data(), 0) == -1) { //The access function is to check whether it exists
+            if (mkdir(dir.data(), 0777) == -1) {  //If it does not exist, use the mkdir function to create
                 WarnL << "mkdir " << dir << " failed: " << get_uv_errmsg();
                 return nullptr;
             }
@@ -137,8 +124,8 @@ bool File::create_path(const std::string &file, unsigned int mod) {
         if (dir.length() == 0) {
             break;
         }
-        if (_access(dir.data(), 0) == -1) { //access函数是查看是不是存在
-            if (mkdir(dir.data(), mod) == -1) {  //如果不存在就用mkdir函数来创建
+        if (_access(dir.data(), 0) == -1) { //The access function is to check whether it exists
+            if (mkdir(dir.data(), mod) == -1) {  //If it does not exist, use the mkdir function to create
                 WarnL << "mkdir " << dir << " failed: " << get_uv_errmsg();
                 return false;
             }
@@ -147,7 +134,6 @@ bool File::create_path(const std::string &file, unsigned int mod) {
     return true;
 }
 
-//判断是否为目录  [AUTO-TRANSLATED:639e15fa]
 //Determine if it is a directory
 bool File::is_dir(const std::string &path) {
     auto dir = opendir(path.data());
@@ -158,7 +144,6 @@ bool File::is_dir(const std::string &path) {
     return true;
 }
 
-//判断是否为常规文件  [AUTO-TRANSLATED:59e6b610]
 //Determine if it is a regular file
 bool File::fileExist(const std::string &path) {
     auto fp = fopen(path.data(), "rb");
@@ -169,7 +154,6 @@ bool File::fileExist(const std::string &path) {
     return true;
 }
 
-//判断是否是特殊目录  [AUTO-TRANSLATED:cda5ed9f]
 //Determine if it is a special directory
 bool File::is_special_dir(const std::string &path) {
     return path == "." || path == "..";
@@ -249,10 +233,8 @@ string File::parentDir(const std::string &path) {
 string File::absolutePath(const std::string &path, const std::string &current_path, bool can_access_parent) {
     string currentPath = current_path;
     if (!currentPath.empty()) {
-        //当前目录不为空  [AUTO-TRANSLATED:5bf272ae]
         //Current directory is not empty
         if (currentPath.front() == '.') {
-            //如果当前目录是相对路径，那么先转换成绝对路径  [AUTO-TRANSLATED:3cc6469e]
             //If the current directory is a relative path, convert it to an absolute path first
             currentPath = absolutePath(current_path, exeDir(), true);
         }
@@ -261,13 +243,11 @@ string File::absolutePath(const std::string &path, const std::string &current_pa
     }
 
     if (path.empty()) {
-        //相对路径为空，那么返回当前目录  [AUTO-TRANSLATED:6dd21c11]
         //Relative path is empty, return the current directory
         return currentPath;
     }
 
     if (currentPath.back() != '/') {
-        //确保当前目录最后字节为'/'  [AUTO-TRANSLATED:fc83fcfe]
         //Ensure the last byte of the current directory is '/
         currentPath.push_back('/');
     }
@@ -275,15 +255,12 @@ string File::absolutePath(const std::string &path, const std::string &current_pa
     auto dir_vec = split(path, "/");
     for (auto &dir : dir_vec) {
         if (dir.empty() || dir == ".") {
-            //忽略空或本文件夹  [AUTO-TRANSLATED:3dd69d88]
             //Ignore empty or current folder
             continue;
         }
         if (dir == "..") {
-            //访问上级目录  [AUTO-TRANSLATED:d3c0b980]
             //Access parent directory
             if (!can_access_parent && currentPath.size() <= rootPath.size()) {
-                //不能访问根目录之外的目录, 返回根目录  [AUTO-TRANSLATED:9d79ec25]
                 //Cannot access directories outside the root, return to root
                 return rootPath;
             }
@@ -295,7 +272,6 @@ string File::absolutePath(const std::string &path, const std::string &current_pa
     }
 
     if (path.back() != '/' && currentPath.back() == '/') {
-        //在路径是文件的情况下，防止转换成目录  [AUTO-TRANSLATED:db91e611]
         //Prevent conversion to directory when path is a file
         currentPath.pop_back();
     }
@@ -312,7 +288,6 @@ void File::scanDir(const std::string &path_in, const function<bool(const string 
     DIR *pDir;
     dirent *pDirent;
     if ((pDir = opendir(path.data())) == nullptr) {
-        //文件夹无效  [AUTO-TRANSLATED:ee3339ea]
         //Invalid folder
         return;
     }
@@ -321,20 +296,17 @@ void File::scanDir(const std::string &path_in, const function<bool(const string 
             continue;
         }
         if (!show_hidden_file && pDirent->d_name[0] == '.') {
-            //隐藏的文件  [AUTO-TRANSLATED:3b2eb642]
             //Hidden file
             continue;
         }
         string strAbsolutePath = path + "/" + pDirent->d_name;
         bool isDir = is_dir(strAbsolutePath);
         if (!cb(strAbsolutePath, isDir)) {
-            //不再继续扫描  [AUTO-TRANSLATED:991bdb3f]
             //Stop scanning
             break;
         }
 
         if (isDir && enter_subdirectory) {
-            //如果是文件夹并且扫描子文件夹，那么递归扫描  [AUTO-TRANSLATED:36773722]
             //If it's a folder and scanning subfolders, then recursively scan
             scanDir(strAbsolutePath, cb, enter_subdirectory);
         }
@@ -347,7 +319,7 @@ uint64_t File::fileSize(FILE *fp, bool remain_size) {
         return 0;
     }
     auto current = ftell64(fp);
-    fseek64(fp, 0L, SEEK_END); /* 定位到文件末尾 */
+    fseek64(fp, 0L, SEEK_END); /* Position to the end of the file */
     auto end = ftell64(fp); /* 得到文件大小 */
     fseek64(fp, current, SEEK_SET);
     return end - (remain_size ? current : 0);
@@ -372,7 +344,6 @@ static bool isEmptyDir(const std::string &path) {
 
 void File::deleteEmptyDir(const std::string &dir, bool backtrace) {
     if (!File::is_dir(dir) || !isEmptyDir(dir)) {
-        // 不是文件夹或者非空  [AUTO-TRANSLATED:fad1712d]
         //Not a folder or not empty
         return;
     }

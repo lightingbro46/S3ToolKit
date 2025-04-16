@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#ifndef SRC_UTIL_NOTICECENTER_H_
+﻿#ifndef SRC_UTIL_NOTICECENTER_H_
 #define SRC_UTIL_NOTICECENTER_H_
 
 #include <mutex>
@@ -46,7 +36,6 @@ private:
         using stl_func = std::function<void(decltype(std::forward<ArgsType>(args))...)>;
         decltype(_mapListener) copy;
         {
-            // 先拷贝(开销比较小)，目的是防止在触发回调时还是上锁状态从而导致交叉互锁  [AUTO-TRANSLATED:62bff466]
             //First copy (lower overhead), to prevent cross-locking when triggering callbacks while still locked
             std::lock_guard<std::recursive_mutex> lck(_mtxListener);
             copy = _mapListener;
@@ -109,7 +98,6 @@ public:
     void delListener(void *tag, const std::string &event) {
         auto dispatcher = getDispatcher(event);
         if (!dispatcher) {
-            // 不存在该事件  [AUTO-TRANSLATED:d9014749]
             //This event does not exist
             return;
         }
@@ -120,7 +108,6 @@ public:
         }
     }
 
-    // 这个方法性能比较差  [AUTO-TRANSLATED:71ea304b]
     //This method has poor performance
     void delListener(void *tag) {
         std::lock_guard<std::recursive_mutex> lck(_mtxListener);
@@ -145,7 +132,6 @@ private:
     int emitEvent_l(bool safe, const std::string &event, ArgsType &&...args) {
         auto dispatcher = getDispatcher(event);
         if (!dispatcher) {
-            // 该事件无人监听  [AUTO-TRANSLATED:9196cf42]
             //No one is listening to this event
             return 0;
         }
@@ -159,7 +145,6 @@ private:
             return it->second;
         }
         if (create) {
-            // 如果为空则创建一个  [AUTO-TRANSLATED:8412a9ae]
             //Create one if it is empty
             EventDispatcher::Ptr dispatcher(new EventDispatcher());
             _mapListener.emplace(event, dispatcher);
@@ -172,7 +157,6 @@ private:
         std::lock_guard<std::recursive_mutex> lck(_mtxListener);
         auto it = _mapListener.find(event);
         if (it != _mapListener.end() && dispatcher == it->second) {
-            // 两者相同则删除  [AUTO-TRANSLATED:8d84179d]
             //If both are the same, delete it
             _mapListener.erase(it);
         }

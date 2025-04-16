@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#ifndef SQL_SQLCONNECTION_H_
+﻿#ifndef SQL_SQLCONNECTION_H_
 #define SQL_SQLCONNECTION_H_
 
 #include <cstdio>
@@ -32,10 +22,7 @@
 namespace toolkit {
 
 /**
- * 数据库异常类
  * Database exception class
- 
- * [AUTO-TRANSLATED:f92df85e]
  */
 class SqlException : public std::exception {
 public:
@@ -58,21 +45,11 @@ private:
 };
 
 /**
- * mysql连接
  * MySQL connection
- 
- * [AUTO-TRANSLATED:a2deb48d]
  */
 class SqlConnection {
 public:
     /**
-     * 构造函数
-     * @param url 数据库地址
-     * @param port 数据库端口号
-     * @param dbname 数据库名
-     * @param username 用户名
-     * @param password 用户密码
-     * @param character 字符集
      * Constructor
      * @param url Database address
      * @param port Database port number
@@ -80,8 +57,6 @@ public:
      * @param username Username
      * @param password User password
      * @param character Character set
-     
-     * [AUTO-TRANSLATED:410a33a6]
      */
     SqlConnection(const std::string &url, unsigned short port,
                   const std::string &dbname, const std::string &username,
@@ -94,7 +69,6 @@ public:
             mysql_close(&_sql);
             throw SqlException("mysql_real_connect", mysql_error(&_sql));
         }
-        //兼容bool与my_bool  [AUTO-TRANSLATED:7d8d4190]
         //Compatible with bool and my_bool
         uint32_t reconnect = 0x01010101;
         mysql_options(&_sql, MYSQL_OPT_RECONNECT, &reconnect);
@@ -106,18 +80,11 @@ public:
     }
 
     /**
-     * 以printf样式执行sql,无数据返回
-     * @param rowId insert时的插入rowid
-     * @param fmt printf类型fmt
-     * @param arg 可变参数列表
-     * @return 影响行数
      * Execute SQL in printf style, no data returned
      * @param rowId Insert rowid when inserting
      * @param fmt printf type fmt
      * @param arg Variable argument list
      * @return Affected rows
-     
-     * [AUTO-TRANSLATED:7c72ab80]
      */
     template<typename Fmt, typename ...Args>
     int64_t query(int64_t &rowId, Fmt &&fmt, Args &&...arg) {
@@ -131,20 +98,12 @@ public:
     }
 
     /**
-     * 以printf样式执行sql,并且返回list类型的结果(不包含数据列名)
-     * @param rowId insert时的插入rowid
-     * @param ret 返回数据列表
-     * @param fmt printf类型fmt
-     * @param arg 可变参数列表
-     * @return 影响行数
      * Execute SQL in printf style, and return list type result (excluding column names)
      * @param rowId Insert rowid when inserting
      * @param ret Returned data list
      * @param fmt printf type fmt
      * @param arg Variable argument list
      * @return Affected rows
-     
-     * [AUTO-TRANSLATED:57baa44e]
      */
     template<typename Fmt, typename ...Args>
     int64_t query(int64_t &rowId, std::vector<std::vector<std::string> > &ret, Fmt &&fmt, Args &&...arg) {
@@ -162,20 +121,12 @@ public:
     }
 
     /**
-     * 以printf样式执行sql,并且返回Map类型的结果(包含数据列名)
-     * @param rowId insert时的插入rowid
-     * @param ret 返回数据列表
-     * @param fmt printf类型fmt
-     * @param arg 可变参数列表
-     * @return 影响行数
      * Execute SQL in printf style, and return Map type result (including column names)
      * @param rowId Insert rowid when inserting
      * @param ret Returned data list
      * @param fmt printf type fmt
      * @param arg Variable argument list
      * @return Affected rows
-     
-     * [AUTO-TRANSLATED:a12a695e]
      */
     template<typename Map, typename Fmt, typename ...Args>
     int64_t query(int64_t &rowId, std::vector<Map> &ret, Fmt &&fmt, Args &&...arg) {

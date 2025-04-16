@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include <sys/stat.h>
+﻿#include <sys/stat.h>
 #include <cstdarg>
 #include <iostream>
 #include "logger.h"
@@ -33,11 +23,11 @@ namespace toolkit {
 #ifdef _WIN32
 #define CLEAR_COLOR 7
 static const WORD LOG_CONST_TABLE[][3] = {
-        {0x97, 0x09 , 'T'},//蓝底灰字，黑底蓝字，window console默认黑底
-        {0xA7, 0x0A , 'D'},//绿底灰字，黑底绿字
-        {0xB7, 0x0B , 'I'},//天蓝底灰字，黑底天蓝字
-        {0xE7, 0x0E , 'W'},//黄底灰字，黑底黄字
-        {0xC7, 0x0C , 'E'} };//红底灰字，黑底红字
+        {0x97, 0x09 , 'T'},//Gray characters on blue background, blue characters on black background, window console default black background
+        {0xA7, 0x0A , 'D'},//Green-based gray characters, black-based green characters
+        {0xB7, 0x0B , 'I'},//Gray characters on the sky blue background, blue characters on the black background
+        {0xE7, 0x0E , 'W'},//Yellow-based gray characters, black-based yellow characters
+        {0xC7, 0x0C , 'E'} };//Grey characters on red, red characters on black
 
 bool SetConsoleColor(WORD Color)
 {
@@ -139,14 +129,14 @@ void Logger::writeChannels_l(const LogContextPtr &ctx) {
     _last_log->_repeat = 0;
 }
 
-//返回毫秒
+//Return milliseconds
 static int64_t timevalDiff(struct timeval &a, struct timeval &b) {
     return (1000 * (b.tv_sec - a.tv_sec)) + ((b.tv_usec - a.tv_usec) / 1000);
 }
 
 void Logger::writeChannels(const LogContextPtr &ctx) {
     if (ctx->_line == _last_log->_line && ctx->_file == _last_log->_file && ctx->str() == _last_log->str() && ctx->_thread_name == _last_log->_thread_name) {
-        //重复的日志每隔500ms打印一次，过滤频繁的重复日志
+        //Repeated logs are printed every 500ms, filtering frequently repeated logs
         ++_last_log->_repeat;
         if (timevalDiff(_last_log->_tv, ctx->_tv) > 500) {
             ctx->_repeat = _last_log->_repeat;
@@ -295,7 +285,7 @@ void ConsoleChannel::write(const Logger &logger, const LogContextPtr &ctx) {
     }
 
 #if defined(OS_IPHONE)
-    //ios禁用日志颜色
+    //ios disable log color
     format(logger, std::cout, ctx, false);
 #elif defined(ANDROID)
     static android_LogPriority LogPriorityArr[10];
@@ -308,7 +298,7 @@ void ConsoleChannel::write(const Logger &logger, const LogContextPtr &ctx) {
     });
     __android_log_print(LogPriorityArr[ctx->_level],"JNI","%s %s",ctx->_function.data(),ctx->str().data());
 #else
-    //linux/windows日志启用颜色并显示日志详情
+    //linux/windows Log enables color and displays log details
     format(logger, std::cout, ctx);
 #endif
 }
@@ -370,7 +360,7 @@ std::string LogChannel::printTime(const timeval &tv) {
 
 void LogChannel::format(const Logger &logger, ostream &ost, const LogContextPtr &ctx, bool enable_color, bool enable_detail) {
     if (!enable_detail && ctx->str().empty()) {
-        // 没有任何信息打印
+        // No information is printed
         return;
     }
 
@@ -435,7 +425,7 @@ void FileChannelBase::write(const Logger &logger, const std::shared_ptr<LogConte
     if (!_fstream.is_open()) {
         open();
     }
-    //打印至文件，不启用颜色
+    //Print to file, color not enabled
     format(logger, _fstream, ctx, false);
 }
 
@@ -456,7 +446,7 @@ bool FileChannelBase::open() {
     // Open the file stream
     _fstream.close();
 #if !defined(_WIN32)
-    //创建文件夹
+    //Create a folder
     File::create_path(_path, S_IRWXO | S_IRWXG | S_IRWXU);
 #else
     File::create_path(_path,0);
@@ -465,7 +455,7 @@ bool FileChannelBase::open() {
     if (!_fstream.is_open()) {
         return false;
     }
-    //打开文件成功
+    //Open the file successfully
     return true;
 }
 
@@ -481,7 +471,7 @@ size_t FileChannelBase::size() {
 
 static const auto s_second_per_day = 24 * 60 * 60;
 
-//根据GMT UNIX时间戳生产日志文件名
+//Production log file name according to GMT UNIX timestamp
 static string getLogFilePath(const string &dir, time_t second, int32_t index) {
     auto tm = getLocalTime(second);
     char buf[64];
@@ -489,18 +479,18 @@ static string getLogFilePath(const string &dir, time_t second, int32_t index) {
     return dir + buf;
 }
 
-//根据日志文件名返回GMT UNIX时间戳
+//Return GMT UNIX timestamp based on log file name
 static time_t getLogFileTime(const string &full_path) {
     auto name = getFileName(full_path.data());
     struct tm tm{0};
     if (!strptime(name, "%Y-%m-%d", &tm)) {
         return 0;
     }
-    //此函数会把本地时间转换成GMT时间戳
+    //This function converts the local time into a GMT time stamp
     return mktime(&tm);
 }
 
-//获取1970年以来的第几天
+//What day has it been since 1970
 static uint64_t getDay(time_t second) {
     return (second + getGMTOff()) / s_second_per_day;
 }
@@ -511,7 +501,7 @@ FileChannel::FileChannel(const string &name, const string &dir, LogLevel level) 
         _dir.append("/");
     }
 
-    //收集所有日志文件
+    //Collect all log files
     File::scanDir(_dir, [this](const string &path, bool isDir) -> bool {
         if (!isDir && end_with(path, ".log")) {
             _log_file_map.emplace(path);
@@ -519,17 +509,17 @@ FileChannel::FileChannel(const string &name, const string &dir, LogLevel level) 
         return true;
     }, false);
 
-    //获取今天日志文件的最大index号
+    //Get the maximum index number of today's log file
     auto log_name_prefix = getTimeStr("%Y-%m-%d_");
     for (auto it = _log_file_map.begin(); it != _log_file_map.end(); ++it) {
         auto name = getFileName(it->data());
-        //筛选出今天所有的日志文件
+        //Filter out all log files today
         if (start_with(name, log_name_prefix)) {
             int tm_mday;  // day of the month - [1, 31]
             int tm_mon;   // months since January - [0, 11]
             int tm_year;  // years since 1900
             uint32_t index;
-            //今天第几个文件
+            //What file is today
             int count = sscanf(name, "%d-%02d-%02d_%d.log", &tm_year, &tm_mon, &tm_mday, &index);
             if (count == 4) {
                 _index = index >= _index ? index : _index;
@@ -539,62 +529,62 @@ FileChannel::FileChannel(const string &name, const string &dir, LogLevel level) 
 }
 
 void FileChannel::write(const Logger &logger, const LogContextPtr &ctx) {
-    //GMT UNIX时间戳
+    //GMT UNIX timestamp
     time_t second = ctx->_tv.tv_sec;
-    //这条日志所在第几天
+    //What day does this log be located
     auto day = getDay(second);
     if ((int64_t) day != _last_day) {
         if (_last_day != -1) {
-            //重置日志index
+            //Reset log index
             _index = 0;
         }
-        //这条日志是新的一天，记录这一天
+        //This log is a new day, record this day
         _last_day = day;
-        //获取日志当天对应的文件，每天可能有多个日志切片文件
+        //Get the corresponding file of the log on the same day, and there may be multiple log slice files every day
         changeFile(second);
     } else {
-        //检查该天日志是否需要重新分片
+        //Check whether the log of this day needs to be resliced
         checkSize(second);
     }
 
-    //写日志
+    //Write a log
     if (_can_write) {
         FileChannelBase::write(logger, ctx);
     }
 }
 
 void FileChannel::clean() {
-    //获取今天是第几天
+    //What day is it today
     auto today = getDay(time(nullptr));
-    //遍历所有日志文件，删除超过若干天前的过期日志文件
+    //Iterate through all log files and delete expired log files that have exceeded several days ago
     for (auto it = _log_file_map.begin(); it != _log_file_map.end();) {
         auto day = getDay(getLogFileTime(it->data()));
         if (today < day + _log_max_day) {
-            //这个日志文件距今尚未超过一定天数,后面的文件更新，所以停止遍历
+            //This log file has not exceeded a certain number of days, and the subsequent files are updated, so the traversal is stopped
             break;
         }
-        //这个文件距今超过了一定天数，则删除文件
+        //If this file has been around for a certain number of days, delete the file
         File::delete_file(*it);
-        //删除这条记录
+        //Delete this record
         it = _log_file_map.erase(it);
     }
 
-    //按文件个数清理，限制最大文件切片个数
+    //Clean by number of files, limit the maximum number of file slices
     while (_log_file_map.size() > _log_max_count) {
         auto it = _log_file_map.begin();
         if (*it == path()) {
-            //当前文件，停止删除
+            //Current file, stop deletion
             break;
         }
-        //删除文件
+        //Delete files
         File::delete_file(*it);
-        //删除这条记录
+        //Delete this record
         _log_file_map.erase(it);
     }
 }
 
 void FileChannel::checkSize(time_t second) {
-    //每60秒检查一下文件大小，防止频繁flush日志文件
+    //Check the file size every 60 seconds to prevent frequent flush log files
     if (second - _last_check_time > 60) {
         if (FileChannelBase::size() > _log_max_size * 1024 * 1024) {
             changeFile(second);
@@ -605,14 +595,14 @@ void FileChannel::checkSize(time_t second) {
 
 void FileChannel::changeFile(time_t second) {
     auto log_file = getLogFilePath(_dir, second, _index++);
-    //记录所有的日志文件，以便后续删除老的日志
+    //Record all log files so that the old logs can be deleted later
     _log_file_map.emplace(log_file);
-    //打开新的日志文件
+    //Open a new log file
     _can_write = setPath(log_file);
     if (!_can_write) {
         ErrorL << "Failed to open log file: " << _path;
     }
-    //尝试删除过期的日志文件
+    //Try to delete expired log files
     clean();
 }
 
@@ -636,7 +626,7 @@ void LoggerWrapper::printLogV(Logger &logger, int level, const char *file, const
     if (vasprintf(&str, fmt, ap) >= 0 && str) {
         info << str;
 #ifdef ASAN_USE_DELETE
-        delete [] str; // 开启asan后，用free会卡死
+        delete [] str; // After turning on asan, using free will get stuck
 #else
         free(str);
 #endif

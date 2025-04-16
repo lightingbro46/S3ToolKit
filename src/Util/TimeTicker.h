@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#ifndef UTIL_TIMETICKER_H_
+﻿#ifndef UTIL_TIMETICKER_H_
 #define UTIL_TIMETICKER_H_
 
 #include <cassert>
@@ -19,16 +9,10 @@ namespace toolkit {
 class Ticker {
 public:
     /**
-     * 此对象可以用于代码执行时间统计，以可以用于一般计时
-     * @param min_ms 开启码执行时间统计时，如果代码执行耗时超过该参数，则打印警告日志
-     * @param ctx 日志上下文捕获，用于捕获当前日志代码所在位置
-     * @param print_log 是否打印代码执行时间
      * This object can be used for code execution time statistics, and can be used for general timing
      * @param min_ms When the code execution time statistics is enabled, if the code execution time exceeds this parameter, a warning log is printed
      * @param ctx Log context capture, used to capture the current log code location
      * @param print_log Whether to print the code execution time
-     
-     * [AUTO-TRANSLATED:4436cf19]
      */
     Ticker(uint64_t min_ms = 0,
            LogContextCapture ctx = LogContextCapture(Logger::Instance(), LWarn, __FILE__, "", __LINE__),
@@ -50,30 +34,21 @@ public:
     }
 
     /**
-     * 获取上次resetTime后至今的时间，单位毫秒
      * Get the time from the last resetTime to now, in milliseconds
-     
-     * [AUTO-TRANSLATED:739ad90a]
      */
     uint64_t elapsedTime() const {
         return getCurrentMillisecond() - _begin;
     }
 
     /**
-     * 获取从创建至今的时间，单位毫秒
      * Get the time from creation to now, in milliseconds
-     
-     * [AUTO-TRANSLATED:83a189e2]
      */
     uint64_t createdTime() const {
         return getCurrentMillisecond() - _created;
     }
 
     /**
-     * 重置计时器
      * Reset the timer
-     
-     * [AUTO-TRANSLATED:2500c6f1]
      */
     void resetTime() {
         _begin = getCurrentMillisecond();
@@ -89,12 +64,8 @@ private:
 class SmoothTicker {
 public:
     /**
-     * 此对象用于生成平滑的时间戳
-     * @param reset_ms 时间戳重置间隔，没间隔reset_ms毫秒, 生成的时间戳会同步一次系统时间戳
      * This object is used to generate smooth timestamps
      * @param reset_ms Timestamp reset interval, every reset_ms milliseconds, the generated timestamp will be synchronized with the system timestamp
-     
-     * [AUTO-TRANSLATED:0ff567e7]
      */
     SmoothTicker(uint64_t reset_ms = 10000) {
         _reset_ms = reset_ms;
@@ -104,10 +75,7 @@ public:
     ~SmoothTicker() {}
 
     /**
-     * 返回平滑的时间戳，防止由于网络抖动导致时间戳不平滑
      * Return a smooth timestamp, to prevent the timestamp from being unsmooth due to network jitter
-     
-     * [AUTO-TRANSLATED:26f78ae3]
      */
     uint64_t elapsedTime() {
         auto now_time = _ticker.elapsedTime();
@@ -138,10 +106,7 @@ public:
     }
 
     /**
-     * 时间戳重置为0开始
      * Reset the timestamp to start from 0
-     
-     * [AUTO-TRANSLATED:ca42c3d1]
      */
     void resetTime() {
         _first_time = 0;

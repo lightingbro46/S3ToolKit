@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#ifndef THREADGROUP_H_
+﻿#ifndef THREADGROUP_H_
 #define THREADGROUP_H_
 
 #include <stdexcept>
@@ -66,7 +56,7 @@ public:
         }
         for (auto &it : _threads) {
             if (it.second->joinable()) {
-                it.second->join(); //等待线程主动退出
+                it.second->join(); //Wait for the thread to exit actively
             }
         }
         _threads.clear();

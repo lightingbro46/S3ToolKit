@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#ifndef S3TOOLKIT_TASKEXECUTOR_H
+﻿#ifndef S3TOOLKIT_TASKEXECUTOR_H
 #define S3TOOLKIT_TASKEXECUTOR_H
 
 #include <mutex>
@@ -20,49 +10,31 @@
 namespace toolkit {
 
 /**
-* cpu负载计算器
  * CPU Load Calculator
- 
- * [AUTO-TRANSLATED:46dad663]
 */
 class ThreadLoadCounter {
 public:
     /**
-     * 构造函数
-     * @param max_size 统计样本数量
-     * @param max_usec 统计时间窗口,亦即最近{max_usec}的cpu负载率
      * Constructor
      * @param max_size Number of statistical samples
      * @param max_usec Statistical time window, i.e., the CPU load rate for the most recent {max_usec}
-     
-     * [AUTO-TRANSLATED:718cb173]
      */
     ThreadLoadCounter(uint64_t max_size, uint64_t max_usec);
     ~ThreadLoadCounter() = default;
 
     /**
-     * 线程进入休眠
      * Thread enters sleep
-     
-     * [AUTO-TRANSLATED:d831fad1]
      */
     void startSleep();
 
     /**
-     * 休眠唤醒,结束休眠
      * Wake up from sleep, end sleep
-     
-     * [AUTO-TRANSLATED:361831f8]
      */
     void sleepWakeUp();
 
     /**
-     * 返回当前线程cpu使用率，范围为 0 ~ 100
-     * @return 当前线程cpu使用率
      * Returns the current thread's CPU usage rate, ranging from 0 to 100
      * @return Current thread's CPU usage rate
-     
-     * [AUTO-TRANSLATED:c9953342]
      */
     int load();
 
@@ -161,72 +133,47 @@ public:
     virtual ~TaskExecutorInterface() = default;
 
     /**
-     * 异步执行任务
-     * @param task 任务
-     * @param may_sync 是否允许同步执行该任务
-     * @return 任务是否添加成功
      * Asynchronously execute a task
      * @param task Task
      * @param may_sync Whether to allow synchronous execution of the task
      * @return Whether the task was added successfully
-     
-     * [AUTO-TRANSLATED:271d48a2]
      */
     virtual Task::Ptr async(TaskIn task, bool may_sync = true) = 0;
 
     /**
-     * 最高优先级方式异步执行任务
-     * @param task 任务
-     * @param may_sync 是否允许同步执行该任务
-     * @return 任务是否添加成功
      * Asynchronously execute a task with the highest priority
      * @param task Task
      * @param may_sync Whether to allow synchronous execution of the task
      * @return Whether the task was added successfully
-     
-     * [AUTO-TRANSLATED:d52ce80b]
      */
     virtual Task::Ptr async_first(TaskIn task, bool may_sync = true);
 
     /**
-     * 同步执行任务
-     * @param task
-     * @return
      * Synchronously execute a task
      * @param task
      * @return
-     
-     * [AUTO-TRANSLATED:24854b4a]
      */
     void sync(const TaskIn &task);
 
     /**
-     * 最高优先级方式同步执行任务
-     * @param task
-     * @return
      * Synchronously execute a task with the highest priority
      * @param task
      * @return
-     
-     * [AUTO-TRANSLATED:3d15452d]
      */
     void sync_first(const TaskIn &task);
 };
 
 /**
-* 任务执行器
  * Task Executor
- 
- * [AUTO-TRANSLATED:630c364f]
 */
 class TaskExecutor : public ThreadLoadCounter, public TaskExecutorInterface {
 public:
     using Ptr = std::shared_ptr<TaskExecutor>;
 
     /**
-     * 构造函数
-     * @param max_size cpu负载统计样本数
-     * @param max_usec cpu负载统计时间窗口大小
+     * Constructor
+     * @param max_size cpu load statistics sample count
+     * @param max_usec CPU load statistics time window size
      */
     TaskExecutor(uint64_t max_size = 32, uint64_t max_usec = 2 * 1000 * 1000);
     ~TaskExecutor() = default;
@@ -239,13 +186,13 @@ public:
     virtual ~TaskExecutorGetter() = default;
 
     /**
-     * 获取任务执行器
-     * @return 任务执行器
+     * Get the task executor
+     * @return Task executor
      */
     virtual TaskExecutor::Ptr getExecutor() = 0;
 
     /**
-     * 获取执行器个数
+     * Get the number of actuators
      */
     virtual size_t getExecutorSize() const = 0;
 };
@@ -256,31 +203,31 @@ public:
     ~TaskExecutorGetterImp() = default;
 
     /**
-     * 根据线程负载情况，获取最空闲的任务执行器
-     * @return 任务执行器
+     * Obtain the idle task executor according to the thread load situation
+     * @return Task executor
      */
     TaskExecutor::Ptr getExecutor() override;
 
     /**
-     * 获取所有线程的负载率
-     * @return 所有线程的负载率
+     * Get the load rate of all threads
+     * @return Load rate for all threads
      */
     std::vector<int> getExecutorLoad();
 
     /**
-     * 获取所有线程任务执行延时，单位毫秒
-     * 通过此函数也可以大概知道线程负载情况
+     * Get all thread task execution delays in milliseconds
+     * This function can also roughly know the thread load situation
      * @return
      */
     void getExecutorDelay(const std::function<void(const std::vector<int> &)> &callback);
 
     /**
-     * 遍历所有线程
+     * Iterate through all threads
      */
     void for_each(const std::function<void(const TaskExecutor::Ptr &)> &cb);
 
     /**
-     * 获取线程数
+     * Get the number of threads
      */
     size_t getExecutorSize() const override;
 

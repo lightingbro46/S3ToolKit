@@ -1,18 +1,4 @@
 ﻿//	100% Public Domain.
-//
-//	Original C Code
-//	 -- Steve Reid <steve@edmweb.com>
-//	Small changes to fit into bglibs
-//	  -- Bruce Guenter <bruce@untroubled.org>
-//	Translation to simpler C++ Code
-//	  -- Volker Grabsch <vog@notjusthosting.com>
-//	Safety fixes
-//	  -- Eugene Hopkinson <slowriot at voxelstorm dot com>
-//  Adapt for project
-//      Dmitriy Khaustov <khaustov.dm@gmail.com>
-//
-// File created on: 2017.02.25
-
 // SHA1.cpp
 
 #include "SHA1.h"

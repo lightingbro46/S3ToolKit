@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include "Timer.h"
+﻿#include "Timer.h"
 
 namespace toolkit {
 
@@ -20,11 +10,9 @@ Timer::Timer(float second, const std::function<bool()> &cb, const EventPoller::P
     _tag = _poller->doDelayTask((uint64_t) (second * 1000), [cb, second]() {
         try {
             if (cb()) {
-                //重复的任务  [AUTO-TRANSLATED:2d440b54]
                 //Recurring task
                 return (uint64_t) (1000 * second);
             }
-            //该任务不再重复  [AUTO-TRANSLATED:4249fc53]
             //This task no longer recurs
             return (uint64_t) 0;
         } catch (std::exception &ex) {

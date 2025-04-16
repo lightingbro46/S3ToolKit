@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#ifndef THREADPOOL_H_
+﻿#ifndef THREADPOOL_H_
 #define THREADPOOL_H_
 
 #include "threadgroup.h"
@@ -51,7 +41,6 @@ public:
         wait();
     }
 
-    //把任务打入线程池并异步执行  [AUTO-TRANSLATED:651c8d5a]
     //Put the task into the thread pool and execute it asynchronously
     Task::Ptr async(TaskIn task, bool may_sync = true) override {
         if (may_sync && _thread_group.is_this_thread_in()) {
@@ -135,7 +124,6 @@ private:
         while (true) {
             startSleep();
             if (!_queue.get_task(task)) {
-                // 空任务，退出线程  [AUTO-TRANSLATED:583e2f11]
                 // Empty task, exit the thread
                 break;
             }

@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2025 The S3ToolKit project authors. All Rights Reserved.
- *
- * This file is part of S3ToolKit(https://github.com/S3MediaKit/S3ToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include "SSLUtil.h"
+﻿#include "SSLUtil.h"
 #include "onceToken.h"
 #include "logger.h"
 
@@ -49,7 +39,6 @@ namespace toolkit
 
     static int getCerType(BIO *bio, const char *passwd, X509 **x509, int type)
     {
-        // 尝试pem格式  [AUTO-TRANSLATED:8debedc8]
         // Try pem format
         if (type == 1 || type == 0)
         {
@@ -57,7 +46,6 @@ namespace toolkit
             {
                 BIO_reset(bio);
             }
-            // 尝试PEM格式  [AUTO-TRANSLATED:311e0a11]
             // Try PEM format
             *x509 = PEM_read_bio_X509(bio, nullptr, nullptr, nullptr);
             if (*x509)
@@ -72,7 +60,6 @@ namespace toolkit
             {
                 BIO_reset(bio);
             }
-            // 尝试DER格式  [AUTO-TRANSLATED:97ea1386]
             // Try DER format
             *x509 = d2i_X509_bio(bio, nullptr);
             if (*x509)
@@ -87,7 +74,6 @@ namespace toolkit
             {
                 BIO_reset(bio);
             }
-            // 尝试p12格式  [AUTO-TRANSLATED:32331d1d]
             // Try p12 format
             PKCS12 *p12 = d2i_PKCS12_bio(bio, nullptr);
             if (p12)
@@ -163,12 +149,10 @@ namespace toolkit
         onceToken token0(nullptr, [&]()
                          { BIO_free(bio); });
 
-        // 尝试pem格式  [AUTO-TRANSLATED:8debedc8]
         // Try pem format
         EVP_PKEY *evp_key = PEM_read_bio_PrivateKey(bio, nullptr, cb, (void *)&passwd);
         if (!evp_key)
         {
-            // 尝试p12格式  [AUTO-TRANSLATED:32331d1d]
             // Try p12 format
             BIO_reset(bio);
             PKCS12 *p12 = d2i_PKCS12_bio(bio, nullptr);
@@ -208,17 +192,14 @@ namespace toolkit
         int i = 0;
         for (auto &cer : cers)
         {
-            // 加载公钥  [AUTO-TRANSLATED:d3cadbdf]
             // Load public key
             if (i++ == 0)
             {
-                // SSL_CTX_use_certificate内部会调用X509_up_ref,所以这里不用X509_dup  [AUTO-TRANSLATED:610aca57]
                 // SSL_CTX_use_certificate internally calls X509_up_ref, so no need to use X509_dup here
                 SSL_CTX_use_certificate(ctx, cer.get());
             }
             else
             {
-                // 需要先拷贝X509对象，否则指针会失效  [AUTO-TRANSLATED:c6cb5ebf]
                 // Need to copy X509 object first, otherwise the pointer will be invalid
                 SSL_CTX_add_extra_chain_cert(ctx, X509_dup(cer.get()));
             }
@@ -226,7 +207,6 @@ namespace toolkit
 
         if (key)
         {
-            // 提供了私钥  [AUTO-TRANSLATED:1b23bc8c]
             // Provided private key
             if (SSL_CTX_use_PrivateKey(ctx, key.get()) != 1)
             {
@@ -238,7 +218,6 @@ namespace toolkit
 
         if (key || checkKey)
         {
-            // 加载私钥成功  [AUTO-TRANSLATED:80e96abb]
             // Private key loaded successfully
             if (SSL_CTX_check_private_key(ctx) != 1)
             {
@@ -248,7 +227,6 @@ namespace toolkit
             }
         }
 
-        // 公钥私钥匹配或者没有公私钥  [AUTO-TRANSLATED:b12ac3e6]
         // Public and private key match or no public and private key
         return shared_ptr<SSL_CTX>(ctx, [](SSL_CTX *ptr)
                                    { SSL_CTX_free(ptr); });
@@ -448,7 +426,6 @@ namespace toolkit
         {
             return "";
         }
-        // 获取证书里的域名  [AUTO-TRANSLATED:97830946]
         // Get domain name from certificate
         X509_NAME *name = X509_get_subject_name(cer);
         char ret[256] = {0};
