@@ -89,7 +89,6 @@ public:
         return _pool->obtain()->escape(const_cast<std::string&>(str));
     }
 
-private:
     SqlitePool() {
         _threadPool = WorkThreadPool::Instance().getExecutor();
         _timer      = std::make_shared<Timer>(
@@ -101,6 +100,7 @@ private:
             nullptr);
     }
 
+private:
     /**
      * Asynchronously executes SQL
      * @param sql SQL statement

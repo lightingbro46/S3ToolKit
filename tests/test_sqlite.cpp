@@ -18,7 +18,7 @@ int main() {
 
 #if defined(SUPPORT_DYNAMIC_TEMPLATE)
     // Initialize data
-    SqlitePool::Instance().Init("");
+    SqlitePool::Instance().Init("./test_db.sqlite");
 #else
     // Because compiler support for variable parameter templates is required, versions below gcc5.0 generally do not support it, otherwise a compilation error will occur
     ErrorL << "your compiler does not support variable parameter templates!" << endl;
@@ -29,8 +29,7 @@ int main() {
     SqlitePool::Instance().setSize(3 + thread::hardware_concurrency());
 
     vector<vector<string> > sqlRet;
-    SqliteWriter("create database test_db;", false) << sqlRet;
-    SqliteWriter("create table test_db.test_table(user_name  varchar(128),user_id int auto_increment primary key,user_pwd varchar(128));", false) << sqlRet;
+    SqliteWriter("create table test_table(user_name  varchar(128),user_id int auto_increment primary key,user_pwd varchar(128));", false) << sqlRet;
 
     // Synchronous insertion
     SqliteWriter insertSql("insert into test_db.test_table(user_name,user_pwd) values('?','?');");
