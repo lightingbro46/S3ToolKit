@@ -32,13 +32,13 @@ int main() {
     SqliteWriter("create table test_table(user_name  varchar(128),user_id int auto_increment primary key,user_pwd varchar(128));", false) << sqlRet;
 
     // Synchronous insertion
-    SqliteWriter insertSql("insert into test_db.test_table(user_name,user_pwd) values('?','?');");
+    SqliteWriter insertSql("insert into test_table(user_name,user_pwd) values('?','?');");
     insertSql<< "s3toolkit" << "123456" << sqlRet;
     // We can know how many pieces of data were inserted, and we can get the rowID of the newly inserted (first) data
     DebugL << "AffectedRows:" << insertSql.getAffectedRows() << ",RowID:" << insertSql.getRowID();
 
     // Synchronous query
-    SqliteWriter sqlSelect("select user_id , user_pwd from test_db.test_table where user_name='?' limit 1;") ;
+    SqliteWriter sqlSelect("select user_id , user_pwd from test_table where user_name='?' limit 1;") ;
     sqlSelect << "s3toolkit" ;
 
     vector<vector<string> > sqlRet0;
@@ -71,7 +71,7 @@ int main() {
     }
 
     // Asynchronous deletion
-    SqliteWriter insertDel("delete from test_db.test_table where user_name='?';");
+    SqliteWriter insertDel("delete from test_table where user_name='?';");
     insertDel << "s3toolkit" << endl;
 
     // Note!
