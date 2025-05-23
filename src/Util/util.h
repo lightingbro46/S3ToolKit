@@ -513,6 +513,14 @@ extern void Assert_Throw(int failed, const char *exp, const char *func, const ch
 }
 #endif
 
+/**
+ * Get hardware uuid
+ */
 std::string getHardwareUUID();
+
+/**
+ * Format by uuid/guid form
+ */
+std::string format_guid(const std::string &s);
 
 #endif /* UTIL_UTIL_H_ */
