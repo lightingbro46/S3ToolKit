@@ -10,13 +10,16 @@ using namespace std;
 
 namespace toolkit {
 
-SqliteTable::SqliteTable(EventPoller::Ptr poller) {
+SqliteTable::SqliteTable(const std::string &tag, EventPoller::Ptr poller) {
     _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
+    static std::string cls_name = toolkit::demangle(typeid(*this).name());
+    _helper = std::make_shared<SqliteHelper>(shared_from_this(), tag, cls_name);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-SqliteHelper::SqliteHelper(const std::weak_ptr<SqliteTable> &table, const string tag, std::string cls) {
+SqliteHelper::SqliteHelper(const weak_ptr<SqliteTable> &table, string tag, string cls) {
+    _table = table;
     _tag = std::move(tag);
     _cls = std::move(cls);
     //Get the pool in the global map for easy management later

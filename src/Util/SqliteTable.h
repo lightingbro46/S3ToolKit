@@ -42,7 +42,7 @@ public:
 
     using Ptr = std::shared_ptr<SqliteHelper>;
 
-    SqliteHelper(const std::weak_ptr<SqliteTable> &table, std::string &tag, std::string cls);
+    SqliteHelper(const std::weak_ptr<SqliteTable> &table, std::string tag, std::string cls);
     ~SqliteHelper();
 
     const SqlitePool::Ptr &pool() const;
