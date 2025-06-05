@@ -21,7 +21,16 @@ public:
     using PoolType   = ResourcePool<SqliteConnection>;
     using SqlRetType = std::vector<std::vector<std::string>>;
 
-    static SqlitePool& Instance();
+    SqlitePool() {
+        _threadPool = WorkThreadPool::Instance().getExecutor();
+        _timer      = std::make_shared<Timer>(
+            30,
+            [this]() {
+                flushError();
+                return true;
+            },
+            nullptr);
+    }
 
     ~SqlitePool() {
         _timer.reset();
@@ -87,17 +96,6 @@ public:
     std::string escape(const std::string& str) {
         checkInited();
         return _pool->obtain()->escape(const_cast<std::string&>(str));
-    }
-
-    SqlitePool() {
-        _threadPool = WorkThreadPool::Instance().getExecutor();
-        _timer      = std::make_shared<Timer>(
-            30,
-            [this]() {
-                flushError();
-                return true;
-            },
-            nullptr);
     }
 
 private:
@@ -170,9 +168,11 @@ private:
  */
 class SqliteStream {
 public:
-    SqliteStream(const char* sql) : _sql(sql) {}
+    SqliteStream(const SqlitePool::Ptr pool, const char *sql) : _pool(pool), _sql(sql) {}
 
-    ~SqliteStream() {}
+    ~SqliteStream() {
+        _pool.reset();
+    }
 
     template <typename T> SqliteStream& operator<<(T&& data) {
         auto pos = _sql.find('?', _startPos);
@@ -181,7 +181,7 @@ public:
         }
         _str_tmp.str("");
         _str_tmp << std::forward<T>(data);
-        std::string str = SqlitePool::Instance().escape(_str_tmp.str());
+        std::string str = _pool->escape(_str_tmp.str());
         _startPos       = pos + str.size();
         _sql.replace(pos, 1, str);
         return *this;
@@ -192,6 +192,7 @@ public:
     operator std::string() { return _sql; }
 
 private:
+    SqlitePool::Ptr        _pool;
     std::stringstream      _str_tmp;
     std::string            _sql;
     std::string::size_type _startPos = 0;
@@ -207,9 +208,11 @@ public:
      * @param sql SQL template with '?' placeholder
      * @param throwAble Whether to throw exceptions
      */
-    SqliteWriter(const char* sql, bool throwAble = true) : _sqliteStream(sql), _throwAble(throwAble) {}
+    SqliteWriter(const SqlitePool::Ptr pool, const char *sql, bool throwAble = true) : _pool(pool), _sqliteStream(pool, sql), _throwAble(throwAble) {}
 
-    ~SqliteWriter() {}
+    ~SqliteWriter() {
+        _pool.reset();
+    }
 
     /**
      * Replaces '?' placeholders with input parameters to generate SQL statements; may throw
@@ -238,7 +241,7 @@ public:
      */
     void operator<<(std::ostream& (*f)(std::ostream&)) {
         // Asynchronously executes SQL, does not throw exceptions
-        SqlitePool::Instance().asyncQuery((std::string)_sqliteStream);
+        _pool->asyncQuery((std::string)_sqliteStream);
     }
 
     /**
@@ -252,7 +255,7 @@ public:
      */
     template <typename Row> int64_t operator<<(std::vector<Row>& ret) {
         try {
-            _affectedRows = SqlitePool::Instance().syncQuery(_rowId, ret, (std::string)_sqliteStream);
+            _affectedRows = _pool->syncQuery(_rowId, ret, (std::string)_sqliteStream);
         } catch (std::exception& ex) {
             if (!_throwAble) {
                 WarnL << "SqlitePool::syncQuery failed: " << ex.what();
@@ -276,6 +279,7 @@ public:
     int64_t getAffectedRows() const { return _affectedRows; }
 
 private:
+    SqlitePool::Ptr _pool;
     SqliteStream _sqliteStream;
     int64_t   _rowId        = -1;
     int64_t   _affectedRows = -1;

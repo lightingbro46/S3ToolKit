@@ -18,7 +18,8 @@ int main() {
 
 #if defined(SUPPORT_DYNAMIC_TEMPLATE)
     // Initialize data
-    SqlitePool::Instance().Init("./test_db.sqlite");
+    SqlitePool::Ptr pool = std::make_shared<SqlitePool>();
+    pool->Init("./test_db.sqlite");
 #else
     // Because compiler support for variable parameter templates is required, versions below gcc5.0 generally do not support it, otherwise a compilation error will occur
     ErrorL << "your compiler does not support variable parameter templates!" << endl;
@@ -26,19 +27,19 @@ int main() {
 #endif //defined(SUPPORT_DYNAMIC_TEMPLATE)
 
     // It is recommended to set the database connection pool size to be consistent with the number of CPUs (slightly larger is better)
-    SqlitePool::Instance().setSize(3 + thread::hardware_concurrency());
+    pool->setSize(3 + thread::hardware_concurrency());
 
     vector<vector<string> > sqlRet;
-    SqliteWriter("create table test_table(user_name  varchar(128),user_id int auto_increment primary key,user_pwd varchar(128));", false) << sqlRet;
+    SqliteWriter(pool, "create table test_table(user_name  varchar(128),user_id int auto_increment primary key,user_pwd varchar(128));", false) << sqlRet;
 
     // Synchronous insertion
-    SqliteWriter insertSql("insert into test_table(user_name,user_pwd) values('?','?');");
+    SqliteWriter insertSql(pool, "insert into test_table(user_name,user_pwd) values('?','?');");
     insertSql<< "s3toolkit" << "123456" << sqlRet;
     // We can know how many pieces of data were inserted, and we can get the rowID of the newly inserted (first) data
     DebugL << "AffectedRows:" << insertSql.getAffectedRows() << ",RowID:" << insertSql.getRowID();
 
     // Synchronous query
-    SqliteWriter sqlSelect("select user_id , user_pwd from test_table where user_name='?' limit 1;") ;
+    SqliteWriter sqlSelect(pool, "select user_id , user_pwd from test_table where user_name='?' limit 1;") ;
     sqlSelect << "s3toolkit" ;
 
     vector<vector<string> > sqlRet0;
@@ -71,7 +72,7 @@ int main() {
     }
 
     // Asynchronous deletion
-    SqliteWriter insertDel("delete from test_table where user_name='?';");
+    SqliteWriter insertDel(pool, "delete from test_table where user_name='?';");
     insertDel << "s3toolkit" << endl;
 
     // Note!
