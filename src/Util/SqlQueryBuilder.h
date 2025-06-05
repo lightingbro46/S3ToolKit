@@ -89,16 +89,6 @@ private:
     std::vector<SqlValue> _insertValues;
 };
 
-#define SQL_CLASS(CLASS_NAME, TABLE_NAME, ...)                                 \
-    static std::string staticTableName() { return TABLE_NAME; }                \
-    std::string tableName() const { return TABLE_NAME; }                       \
-    static std::vector<std::string> getColumnNames() {                         \
-        return {__VA_ARGS__};                                                  \
-    }                                                                          \
-    std::vector<SqlValue> getColumnValues() const {                            \
-        return {__VA_ARGS__};                                                  \
-    }
-
 template<typename T>
 QueryBuilder buildInsertQuery(const T& obj) {
     auto columns = T::getColumnNames();
@@ -138,5 +128,15 @@ QueryBuilder buildDeleteQuery(const std::string& whereCond = "", const std::vect
 }
 
 } // namespace toolkit 
+
+#define SQL_CLASS(CLASS_NAME, TABLE_NAME, ...)                                 \
+    static std::string staticTableName() { return TABLE_NAME; }                \
+    std::string tableName() const { return TABLE_NAME; }                       \
+    static std::vector<std::string> getColumnNames() {                         \
+        return {__VA_ARGS__};                                                  \
+    }                                                                          \
+    std::vector<toolkit::SqlValue> getColumnValues() const {                   \
+        return {__VA_ARGS__};                                                  \
+    }
 
 #endif // UTIL_SQLQUERYBUILDER_H_
