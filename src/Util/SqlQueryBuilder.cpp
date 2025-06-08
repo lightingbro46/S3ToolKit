@@ -2,9 +2,10 @@
 
 using namespace toolkit;
 
-QueryBuilder::QueryBuilder(Type type) : _type(type), _limit(-1), _offset(-1) {}
+QueryBuilder::QueryBuilder() : _limit(-1), _offset(-1) {}
 
 QueryBuilder& QueryBuilder::select(const std::vector<std::string>& columns) {
+    _type = Type::SELECT;
     _selectColumns = columns;
     return *this;
 }
@@ -15,27 +16,32 @@ QueryBuilder& QueryBuilder::from(const std::string& table) {
 }
 
 QueryBuilder& QueryBuilder::update(const std::string& table) {
+    _type = Type::UPDATE;
     _table = table;
     return *this;
 }
 
-QueryBuilder& QueryBuilder::set(const std::string& column, const SqlValue& value) {
-    _updateSet.push_back(std::make_pair(column, value));
+QueryBuilder& QueryBuilder::set(const std::vector<std::pair<std::string, SqlValue>>& keyValues) {
+    _updateSet.insert(_updateSet.end(), keyValues.begin(), keyValues.end());
     return *this;
 }
 
 QueryBuilder& QueryBuilder::insertInto(const std::string& table) {
+    _type = Type::INSERT;
     _table = table;
     return *this;
 }
 
-QueryBuilder& QueryBuilder::values(const std::vector<std::string>& columns, const std::vector<SqlValue>& values) {
-    _insertColumns = columns;
-    _insertValues = values;
+QueryBuilder& QueryBuilder::values(const std::vector<std::pair<std::string, SqlValue>>& keyValues) {
+    for (const auto& pair : keyValues) {
+        _insertColumns.push_back(pair.first);
+        _insertValues.push_back(pair.second);
+    }
     return *this;
 }
 
 QueryBuilder& QueryBuilder::deleteFrom(const std::string& table) {
+    _type = Type::DELETE;
     _table = table;
     return *this;
 }
@@ -127,7 +133,10 @@ std::string QueryBuilder::build() const {
         case Type::DELETE:
             ss << "DELETE FROM " << _table;
             break;
-    }
+
+        default: 
+            return ss.str();
+        }
 
     for (const auto& join : _joinClauses) {
         ss << " " << join;
