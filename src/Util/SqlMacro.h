@@ -55,30 +55,30 @@ inline std::string toString(const T& value) {
     return oss.str();
 }
 
-#define SQL_STRUCT(TYPE, TABLE_NAME, DB_NAME, ...)                                    \
-static std::string tableName() { return TABLE_NAME; }                                 \
-static std::string dbName() { return DB_NAME; }                                       \
-static std::vector<std::string> getColumnNames() { return {#__VA_ARGS__}; }           \
-static std::vector<std::pair<std::string, SqlValue>> toKeyValuePairs(const TYPE &obj) \
-{                                                                                     \
-    std::vector<std::pair<std::string, SqlValue>> kv;                                 \
-    const char *fields[] = {#__VA_ARGS__};                                            \
-    SqlValue values[] = {__VA_ARGS__};                                                \
-    size_t count = sizeof(values) / sizeof(SqlValue);                                 \
-    for (size_t i = 0; i < count; ++i)                                                \
-    {                                                                                 \
-        kv.emplace_back(fields[i], values[i]);                                        \
-    }                                                                                 \
-    return kv;                                                                        \
-}                                                                                     \
-static TYPE fromMap(const std::map<std::string, std::string> &m)                      \
-{                                                                                     \
-    TYPE obj;                                                                         \
-    applyFromMap(obj, m);                                                             \
-    return obj;                                                                       \
-}
-
 } // namespace toolkit
 
+#define SQL_STRUCT(TYPE, TABLE_NAME, DB_NAME, ...)                                                 \
+    static std::string tableName() { return TABLE_NAME; }                                          \
+    static std::string dbName() { return DB_NAME; }                                                \
+    static std::vector<std::string> getColumnNames() { return {#__VA_ARGS__}; }                    \
+    static std::vector<std::pair<std::string, toolkit::SqlValue>> toKeyValuePairs(const TYPE &obj) \
+    {                                                                                              \
+        std::vector<std::pair<std::string, toolkit::SqlValue>> kv;                                 \
+        const char *fields[] = {#__VA_ARGS__};                                                     \
+        toolkit::SqlValue values[] = {__VA_ARGS__};                                                \
+        size_t count = sizeof(values) / sizeof(toolkit::SqlValue);                                 \
+        for (size_t i = 0; i < count; ++i)                                                         \
+        {                                                                                          \
+            kv.emplace_back(fields[i], values[i]);                                                 \
+        }                                                                                          \
+        return kv;                                                                                 \
+    }                                                                                              \
+    static TYPE fromMap(const std::map<std::string, std::string> &m)                               \
+    {                                                                                              \
+        TYPE obj;                                                                                  \
+        applyFromMap(obj, m);                                                                      \
+        return obj;                                                                                \
+    }                                                                                              \
+    static void applyFromMap(TYPE &obj, const std::map<std::string, std::string> &m)
 
 #endif // SQL_SQLMACRO_H

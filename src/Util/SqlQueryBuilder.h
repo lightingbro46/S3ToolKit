@@ -80,9 +80,9 @@ public:
         return rows;
     }
 
-    // Execute query and convert rows to vector<T> using fromMap(...)
+    // Execute query and convert rows to vector<T> using T::fromMap(...)
     template<typename Pool, typename Writter, typename T>
-    static std::vector<T> execute(const std::shared_ptr<Pool> &pool, const QueryBuilder& builder, std::function<T(const std::map<std::string, std::string>)> fromMap) {
+    static std::vector<T> execute(const std::shared_ptr<Pool> &pool, const QueryBuilder& builder) {
         Writter writer(pool, builder.build());
         writer << builder;
         auto params = builder.getParams();
@@ -96,7 +96,7 @@ public:
 
         std::vector<T> results;
         for (const auto& row : rows) {
-            results.emplace_back(fromMap(row));
+            results.emplace_back(T::fromMap(row));
         }
         return results;
     }
