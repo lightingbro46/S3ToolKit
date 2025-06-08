@@ -90,6 +90,9 @@ inline void assignField<double>(double& field, const toolkit::SqlValue& v) { fie
 template<>
 inline void assignField<std::string>(std::string& field, const toolkit::SqlValue& v) { field = v.asString(); }
 
+template<>
+inline void assignField<uint64_t>(uint64_t& field, const toolkit::SqlValue& v) { field = v.asUint64(); }
+
 // Helper for assigning all fields from vector
 // Usage: fromVectorImpl(obj, vec, obj.field1, obj.field2, ...)
 template<typename Obj, typename... Fields>
@@ -139,6 +142,7 @@ void fromVectorImpl(Obj& obj, const std::vector<toolkit::SqlValue>& vec, Fields&
 
 #define SQL_CLASS_FIELD_NAME(field) v.push_back(#field);
 #define SQL_CLASS_FIELD_VALUE(field) v.push_back(this->field);
+#define SQL_CLASS_FIELD_VALUE_UINT64(field) v.push_back(static_cast<uint64_t>(this->field));
 #define SQL_CLASS_FIELD_ASSIGN(field) if (i < vec.size()) assignField(obj.field, vec[i++]);
 
 } // namespace toolkit
