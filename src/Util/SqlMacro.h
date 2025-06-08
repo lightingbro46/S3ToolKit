@@ -9,73 +9,6 @@
 
 namespace toolkit {
 
-template<typename T>
-class Optional {
-    bool has_;
-    T value_;
-
-public:
-    Optional() : has_(false) {}
-
-    Optional(const T& val) : has_(true), value_(val) {}
-
-    Optional(T&& val) : has_(true), value_(std::move(val)) {}
-
-    Optional(const Optional& other) {
-        has_ = other.has_;
-        if (has_) value_ = other.value_;
-    }
-
-    Optional(Optional&& other) {
-        has_ = other.has_;
-        if (has_) value_ = std::move(other.value_);
-    }
-
-    Optional& operator=(const T& val) {
-        has_ = true;
-        value_ = val;
-        return *this;
-    }
-
-    Optional& operator=(T&& val) {
-        has_ = true;
-        value_ = std::move(val);
-        return *this;
-    }
-
-    Optional& operator=(const Optional& other) {
-        if (this != &other) {
-            has_ = other.has_;
-            if (has_) value_ = other.value_;
-        }
-        return *this;
-    }
-
-    Optional& operator=(Optional&& other) {
-        if (this != &other) {
-            has_ = other.has_;
-            if (has_) value_ = std::move(other.value_);
-        }
-        return *this;
-    }
-
-    bool hasValue() const { return has_; }
-
-    explicit operator bool() const { return has_; }
-
-    const T& value() const {
-        if (!has_) throw std::runtime_error("Optional has no value");
-        return value_;
-    }
-
-    T& value() {
-        if (!has_) throw std::runtime_error("Optional has no value");
-        return value_;
-    }
-
-    void reset() { has_ = false; }
-};
-
 class SqlValue {
 public:
     enum Type {
@@ -85,159 +18,115 @@ public:
         TYPE_STRING
     };
 
-    SqlValue() : type_(TYPE_NULL), intVal_(0), doubleVal_(0.0) {}
-    SqlValue(int v) : type_(TYPE_INT), intVal_(v), doubleVal_(0.0) {}
-    SqlValue(double v) : type_(TYPE_DOUBLE), intVal_(0), doubleVal_(v) {}
-    SqlValue(const std::string& v) : type_(TYPE_STRING), strVal_(v), intVal_(0), doubleVal_(0.0) {}
-    SqlValue(const char* v) : type_(TYPE_STRING), strVal_(v), intVal_(0), doubleVal_(0.0) {}
+    SqlValue() : _type(TYPE_NULL), _intVal(0), _doubleVal(0.0) {}
+    SqlValue(int v) : _type(TYPE_INT), _intVal(v), _doubleVal(0.0) {}
+    SqlValue(double v) : _type(TYPE_DOUBLE), _intVal(0), _doubleVal(v) {}
+    SqlValue(const std::string& v) : _type(TYPE_STRING), _strVal(v), _intVal(0), _doubleVal(0.0) {}
+    SqlValue(const char* v) : _type(TYPE_STRING), _strVal(v), _intVal(0), _doubleVal(0.0) {}
 
-    template<typename T>
-    SqlValue(const Optional<T>& opt) {
-        if (!opt.has_value()) {
-            type_ = TYPE_NULL;
-        } else {
-            *this = SqlValue(opt.value());
-        }
-    }
-
-    Type type() const { return type_; }
-
-    std::string toString() const {
-        switch (type_) {
-            case TYPE_INT: return std::to_string(intVal_);
-            case TYPE_DOUBLE: return std::to_string(doubleVal_);
-            case TYPE_STRING: return strVal_;
-            case TYPE_NULL: default: return "NULL";
-        }
-    }
+    Type type() const { return _type; }
 
     int asInt() const {
-        if (type_ == TYPE_INT) return intVal_;
-        if (type_ == TYPE_DOUBLE) return static_cast<int>(doubleVal_);
-        if (type_ == TYPE_STRING) return std::stoi(strVal_);
+        if (_type == TYPE_INT) return _intVal;
+        if (_type == TYPE_DOUBLE) return static_cast<int>(_doubleVal);
+        if (_type == TYPE_STRING) return std::stoi(_strVal);
         return 0;
     }
-
     double asDouble() const {
-        if (type_ == TYPE_DOUBLE) return doubleVal_;
-        if (type_ == TYPE_INT) return intVal_;
-        if (type_ == TYPE_STRING) return std::stod(strVal_);
+        if (_type == TYPE_DOUBLE) return _doubleVal;
+        if (_type == TYPE_INT) return _intVal;
+        if (_type == TYPE_STRING) return std::stod(_strVal);
         return 0.0;
     }
-
     std::string asString() const {
-        return toString();
+        if (_type == TYPE_STRING) return _strVal;
+        if (_type == TYPE_INT) return std::to_string(_intVal);
+        if (_type == TYPE_DOUBLE) return std::to_string(_doubleVal);
+        return "NULL";
     }
+    bool isNull() const { return _type == TYPE_NULL; }
 
-    bool isNull() const { return type_ == TYPE_NULL; }
-
-    template<typename T>
-    Optional<T> asOptional() const {
-        return isNull() ? Optional<T>() : Optional<T>(static_cast<T>(...));
+    bool operator==(const SqlValue& other) const {
+        if (_type != other._type) return false;
+        switch (_type) {
+            case TYPE_INT: return _intVal == other._intVal;
+            case TYPE_DOUBLE: return _doubleVal == other._doubleVal;
+            case TYPE_STRING: return _strVal == other._strVal;
+            case TYPE_NULL: default: return true;
+        }
     }
 
 private:
-    Type type_;
-    int intVal_;
-    double doubleVal_;
-    std::string strVal_;
+    Type _type;
+    int _intVal;
+    double _doubleVal;
+    std::string _strVal;
 };
 
-} // namespace toolkit
-
-#define SQL_FIELD(name) std::make_pair(#name, toolkit::SqlValue(obj.name))
-#define SQL_FIELD_OPT(name) \
-    (obj.name.has_value() ? std::make_pair(#name, toolkit::SqlValue(obj.name.value())) : std::make_pair(#name, toolkit::SqlValue()))
-
-#define SQL_CLASS(className, tableName, dbName, ...)                                                      \
-    static std::string tableName() { return tableName; }                                                \
-    static std::string dbName() { return dbName; }                                                      \
-    static std::vector<std::string> getColumnNames()                                                    \
-    {                                                                                                   \
-        return splitColumnNames(#__VA_ARGS__);                                                          \
-    }                                                                                                   \
-    static std::vector<std::pair<std::string, toolkit::SqlValue>> toKeyValuePairs(const className &obj) \
-    {                                                                                                   \
-        std::vector<std::pair<std::string, toolkit::SqlValue>> kvs;                                     \
-        applyKeyValuePairs(kvs, obj, __VA_ARGS__);                                                      \
-        return kvs;                                                                                     \
-    }                                                                                                   \
-    static className fromMap(const std::map<std::string, std::string> &m)                               \
-    {                                                                                                   \
-        className obj;                                                                                  \
-        applyFromMap(obj, m, __VA_ARGS__);                                                              \
-        return obj;                                                                                     \
-    }
-
-#define DEFINE_SPLITTER                                                              \
-    static std::vector<std::string> splitColumnNames(const std::string &s)           \
-    {                                                                                \
-        std::vector<std::string> result;                                             \
-        size_t start = 0, end = 0;                                                   \
-        while ((end = s.find(',', start)) != std::string::npos)                      \
-        {                                                                            \
-            result.push_back(trim(s.substr(start, end - start)));                    \
-            start = end + 1;                                                         \
-        }                                                                            \
-        result.push_back(trim(s.substr(start)));                                     \
-        return result;                                                               \
-    }                                                                                \
-    static std::string trim(const std::string &s)                                    \
-    {                                                                                \
-        const char *ws = " \t\n\r";                                                  \
-        size_t start = s.find_first_not_of(ws);                                      \
-        size_t end = s.find_last_not_of(ws);                                         \
-        return (start == std::string::npos) ? "" : s.substr(start, end - start + 1); \
-    }
-
-#define APPLY_KV_PAIR(obj, name) kvs.push_back(SQL_FIELD(name));
-#define APPLY_KV_PAIR_OPT(obj, name) kvs.push_back(SQL_FIELD_OPT(name));
-
-#define applyKeyValuePairs(kvs, obj, ...) \
-    applyKeyValuePairsImpl(kvs, obj, __VA_ARGS__);
-
-#define applyFromMap(obj, m, ...) \
-    applyFromMapImpl(obj, m, __VA_ARGS__);
-
-// Variadic templates to walk through fields
-#define EXPAND(...) __VA_ARGS__
-
-#define FIELD_APPLIER(obj, m, field)                              \
-    if (m.count(#field))                                          \
-    {                                                             \
-        obj.field = convertTo<decltype(obj.field)>(m.at(#field)); \
-    }
-
-#define FIELD_APPLIER_OPT(obj, m, field)                                                                                          \
-    if (m.count(#field))                                                                                                          \
-    {                                                                                                                             \
-        obj.field = Optional<decltype(obj.field)::value_type>(convertTo<typename decltype(obj.field)::value_type>(m.at(#field))); \
-    }
-
-// Convert string to types
-inline int convertToInt(const std::string& s) { return std::stoi(s); }
-inline double convertToDouble(const std::string& s) { return std::stod(s); }
-inline float convertToFloat(const std::string& s) { return std::stof(s); }
-inline bool convertToBool(const std::string& s) { return s == "1" || s == "true"; }
-inline std::string convertToString(const std::string& s) { return s; }
-
-// Generic convertTo template
+// Helper for field assignment from SqlValue (C++11)
 template<typename T>
-T convertTo(const std::string& s);
+inline void assignField(T& field, const toolkit::SqlValue& v);
 
-template<> inline int convertTo<int>(const std::string& s) { return convertToInt(s); }
-template<> inline double convertTo<double>(const std::string& s) { return convertToDouble(s); }
-template<> inline float convertTo<float>(const std::string& s) { return convertToFloat(s); }
-template<> inline bool convertTo<bool>(const std::string& s) { return convertToBool(s); }
-template<> inline std::string convertTo<std::string>(const std::string& s) { return convertToString(s); }
+template<>
+inline void assignField<int>(int& field, const toolkit::SqlValue& v) { field = v.asInt(); }
 
-// Actual field logic handlers
-#define applyKeyValuePairsImpl(kvs, obj, ...)                                                                                                                                                                               \
-    int unpack[] = {0, ((obj.__VA_ARGS__.has_value() ? kvs.push_back(std::make_pair(#__VA_ARGS__, toolkit::SqlValue(obj.__VA_ARGS__.value()))) : kvs.push_back(std::make_pair(#__VA_ARGS__, toolkit::SqlValue()))), 0)...}; \
-    (void)unpack;
+template<>
+inline void assignField<double>(double& field, const toolkit::SqlValue& v) { field = v.asDouble(); }
 
-#define applyFromMapImpl(obj, m, ...)                                                                                                                                                                                         \
-    int unpack[] = {0, ((m.count(#__VA_ARGS__) ? obj.__VA_ARGS__ = Optional<typename decltype(obj.__VA_ARGS__)::value_type>(convertTo<typename decltype(obj.__VA_ARGS__)::value_type>(m.at(#__VA_ARGS__))) : void()), 0)...}; \
-    (void)unpack;
+template<>
+inline void assignField<std::string>(std::string& field, const toolkit::SqlValue& v) { field = v.asString(); }
+
+// Helper for assigning all fields from vector
+// Usage: fromVectorImpl(obj, vec, obj.field1, obj.field2, ...)
+template<typename Obj, typename... Fields>
+void fromVectorImpl(Obj& obj, const std::vector<toolkit::SqlValue>& vec, Fields&... fields) {
+    size_t i = 0;
+    int dummy[] = {0, ((i < vec.size() ? assignField(fields, vec[i++]) : void()), 0)...};
+    (void)dummy;
+}
+
+// C++11-friendly SQL_CLASS macro: requires FIELD_LIST macro for each struct
+// Usage:
+//   #define USER_FIELD_LIST(X) X(id) X(name) X(age)
+//   struct User { int id; std::string name; int age; SQL_CLASS(User, "user", "db", USER_FIELD_LIST) };
+#define SQL_CLASS(CLASS_NAME, TABLE_NAME, DB_NAME, FIELD_LIST)                     \
+    static std::string dbName() { return DB_NAME; }                                \
+    static std::string tableName() { return TABLE_NAME; }                          \
+    static std::vector<std::string> getColumnNames()                               \
+    {                                                                              \
+        std::vector<std::string> v;                                                \
+        FIELD_LIST(SQL_CLASS_FIELD_NAME)                                           \
+        return v;                                                                  \
+    }                                                                              \
+    std::vector<toolkit::SqlValue> getColumnValues() const                         \
+    {                                                                              \
+        std::vector<toolkit::SqlValue> v;                                          \
+        FIELD_LIST(SQL_CLASS_FIELD_VALUE)                                          \
+        return v;                                                                  \
+    }                                                                              \
+    std::vector<std::pair<std::string, toolkit::SqlValue>> toKeyValuePairs() const \
+    {                                                                              \
+        std::vector<std::pair<std::string, toolkit::SqlValue>> kvs;                \
+        std::vector<std::string> names = getColumnNames();                         \
+        std::vector<toolkit::SqlValue> values = getColumnValues();                 \
+        for (size_t i = 0; i < names.size() && i < values.size(); ++i)             \
+        {                                                                          \
+            kvs.push_back(std::make_pair(names[i], values[i]));                    \
+        }                                                                          \
+        return kvs;                                                                \
+    }                                                                              \
+    static CLASS_NAME fromVector(const std::vector<toolkit::SqlValue> &vec)        \
+    {                                                                              \
+        CLASS_NAME obj;                                                            \
+        size_t i = 0;                                                              \
+        FIELD_LIST(SQL_CLASS_FIELD_ASSIGN)                                         \
+        return obj;                                                                \
+    }
+
+#define SQL_CLASS_FIELD_NAME(field) v.push_back(#field);
+#define SQL_CLASS_FIELD_VALUE(field) v.push_back(this->field);
+#define SQL_CLASS_FIELD_ASSIGN(field) if (i < vec.size()) assignField(obj.field, vec[i++]);
+
+} // namespace toolkit
 
 #endif // SQL_SQLMACRO_H
