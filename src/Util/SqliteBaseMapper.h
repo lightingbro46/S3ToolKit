@@ -12,8 +12,6 @@
 
 namespace toolkit {
 
-class SqlitePool;
-
 //Global Sqlite pool record object, convenient for later management
 //Thread-safe    
 class SqlitePoolMap : public std::enable_shared_from_this<SqlitePoolMap> {
@@ -23,7 +21,7 @@ public:
     static SqlitePoolMap &Instance();
     ~SqlitePoolMap() = default;
 
-    bool add(const std::string& tag, std::shared_ptr<SqlitePool> pool) {
+    bool add(const std::string& tag, SqlitePool::Ptr pool) {
         std::lock_guard<std::mutex> lck(_mtx_pool);
         return _sqlite_pools.emplace(tag, std::move(pool)).second;
     }
@@ -33,7 +31,7 @@ public:
         return _sqlite_pools.erase(tag);
     }
 
-    std::shared_ptr<SqlitePool> get(const std::string& tag) {
+    SqlitePool::Ptr get(const std::string& tag) {
         std::lock_guard<std::mutex> lck(_mtx_pool);
         auto it = _sqlite_pools.find(tag);
         return it != _sqlite_pools.end() ? it->second : nullptr;
@@ -43,7 +41,7 @@ private:
     SqlitePoolMap() = default;
 
     std::mutex _mtx_pool;
-    std::unordered_map<std::string, std::shared_ptr<SqlitePool>> _sqlite_pools;
+    std::unordered_map<std::string, SqlitePool::Ptr> _sqlite_pools;
 };
 
 class SqliteHelper {
@@ -59,13 +57,13 @@ public:
 
     ~SqliteHelper() = default;
 
-    const std::shared_ptr<SqlitePool> &pool() const {
+    const SqlitePool::Ptr &pool() const {
         return _pool;
     }
 
 private:
     std::string _tag;
-    std::shared_ptr<SqlitePool> _pool;
+    SqlitePool::Ptr _pool;
     SqlitePoolMap::Ptr _pool_map;
 };
 
@@ -76,7 +74,7 @@ public:
     using KeyValuePair = std::pair<std::string, variant>;
     using KeyValuePairs = std::vector<KeyValuePair>;
 
-    SqliteBaseMapper(std::shared_ptr<SqlitePool> pool, EventPoller::Ptr poller = nullptr) : _pool(pool) {
+    SqliteBaseMapper(SqlitePool::Ptr pool, EventPoller::Ptr poller = nullptr) : _pool(pool) {
         _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
     }
 
@@ -141,7 +139,7 @@ public:
     }
 
 protected:
-    std::shared_ptr<SqlitePool> _pool;
+    SqlitePool::Ptr _pool;
     EventPoller::Ptr _poller;
 };
 
