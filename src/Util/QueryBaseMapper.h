@@ -62,7 +62,7 @@ void fromVectorImpl(Obj& obj, const std::vector<toolkit::variant>& vec, Fields&.
 
 #define SQL_CLASS_FIELD_NAME(field) v.push_back(#field);
 #define SQL_CLASS_FIELD_VALUE(field) v.push_back(obj.field);
-#define SQL_CLASS_FIELD_ASSIGN(field) if (i < vec.size()) assignField(obj.field, vec[i++]);
+#define SQL_CLASS_FIELD_ASSIGN(field) if (i < vec.size()) toolkit::assignField(obj.field, vec[i++]);
 
 template<typename T>
 class BaseMapper {
