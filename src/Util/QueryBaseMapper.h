@@ -64,17 +64,26 @@ void fromVectorImpl(Obj& obj, const std::vector<toolkit::variant>& vec, Fields&.
 #define SQL_CLASS_FIELD_VALUE(field) v.push_back(obj.field);
 #define SQL_CLASS_FIELD_ASSIGN(field) if (i < vec.size()) assignField(obj.field, vec[i++]);
 
-
-template <typename T, typename Derived>
+template<typename T>
 class BaseMapper {
 public:
+    using KeyValuePair = std::pair<std::string, toolkit::variant>;
+    using KeyValuePairs = std::vector<KeyValuePair>;
+
+    explicit BaseMapper(EventPoller::Ptr poller = nullptr) {
+        _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
+    }
+
     virtual ~BaseMapper() = default;
 
-    virtual bool insert(const T &) = 0;
-    virtual bool update(const T &, const std::string&) = 0;
-    virtual bool remove(const std::string&, const std::string&) = 0;
+    virtual bool insert(const T&) = 0;
+    virtual bool updateById(const T&, const std::string &) = 0;
+    virtual bool removeById(const std::string&, const std::string&) = 0;
     virtual std::unique_ptr<T> findById(const std::string&, const std::string&) = 0;
     virtual std::vector<T> findAll() = 0;
+
+protected:
+    EventPoller::Ptr _poller;
 };
 
 } // namespace toolkit

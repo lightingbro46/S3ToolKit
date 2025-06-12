@@ -67,7 +67,7 @@ int main() {
     }
 
     User u2{"123", "Anh123", 10, 1234567};
-    auto ret2 = mapper.update(u2);
+    auto ret2 = mapper.updateById(u2);
     if (!ret1) {
         DebugL << "Update data failed";
         return -1;
@@ -86,7 +86,7 @@ int main() {
         }
     }
 
-    auto ret4 = mapper.remove(u3->id);
+    auto ret4 = mapper.removeById(u3->id);
     if (!ret4) {
         DebugL << "Delete data failed";
         return -1;

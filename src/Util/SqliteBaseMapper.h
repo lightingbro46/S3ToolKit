@@ -68,15 +68,12 @@ private:
 };
 
 template <typename T, typename Derived>
-class SqliteBaseMapper : public BaseMapper<T, Derived> {
+class SqliteBaseMapper : public BaseMapper<T> {
 public:
     using Ptr = std::shared_ptr<SqliteBaseMapper>;
-    using KeyValuePair = std::pair<std::string, variant>;
-    using KeyValuePairs = std::vector<KeyValuePair>;
 
-    SqliteBaseMapper(SqlitePool::Ptr pool, EventPoller::Ptr poller = nullptr) : _pool(pool) {
-        _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
-    }
+    SqliteBaseMapper(SqlitePool::Ptr pool, EventPoller::Ptr poller = nullptr)
+        : BaseMapper<T>(poller), _pool(pool) {}
 
     bool insert(const T& obj) override {
         auto query = QueryBuilder()
@@ -86,10 +83,10 @@ public:
         return ret > 0;
     }
 
-    bool update(const T& obj, const std::string &keyColumn = "id") override {
+    bool updateById(const T& obj, const std::string &keyColumn = "id") override {
         const auto& kv = Derived::toKeyValuePairs(obj);
         variant key;
-        KeyValuePairs updates;
+        typename BaseMapper<T>::KeyValuePairs updates;
         for (const auto& pair : kv) {
             if (pair.first == keyColumn) {
                 key = pair.second;
@@ -105,7 +102,7 @@ public:
         return ret > 0;
     }
 
-    bool remove(const std::string &id, const std::string &keyColumn = "id") override {
+    bool removeById(const std::string &id, const std::string &keyColumn = "id") override {
         auto query = QueryBuilder()
                     .deleteFrom(Derived::tableName())
                     .where(keyColumn + " = ?", {id});
@@ -140,7 +137,6 @@ public:
 
 protected:
     SqlitePool::Ptr _pool;
-    EventPoller::Ptr _poller;
 };
 
 } // namespace toolkit
