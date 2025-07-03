@@ -63,10 +63,10 @@ private:
     std::vector<std::string> _insertValues;
 };
 
+template<typename Pool, typename Writter>
 class QueryExecutor {
 public:
     // Execute query and return raw rows
-    template<typename Pool, typename Writter>
     static std::vector<std::vector<std::string>> executeRaw(const std::shared_ptr<Pool> &pool, const QueryBuilder& builder) {
         auto sql_query = builder.build();
         Writter writer(pool, sql_query.c_str());
@@ -82,7 +82,6 @@ public:
     }
 
     // Execute query and return raw rows
-    template<typename Pool, typename Writter>
     static std::vector<std::vector<std::string>> executeRaw(const std::shared_ptr<Pool> &pool, const std::string &stmt) {
         Writter writer(pool, stmt.c_str());
         std::vector<std::vector<std::string>> rows;
@@ -91,7 +90,6 @@ public:
     }
 
     // Execute INSERT/UPDATE/DELETE and return affected row count
-    template<typename Pool, typename Writter>
     static int execDML(const std::shared_ptr<Pool> &pool, const QueryBuilder& builder) {
         auto sql_query = builder.build();
         Writter writer(pool, sql_query.c_str());
@@ -107,7 +105,6 @@ public:
     }
 
     // Execute INSERT/UPDATE/DELETE and return affected row count
-    template<typename Pool, typename Writter>
     static int execDML(const std::shared_ptr<Pool> &pool, const std::string &stmt) {
         Writter writer(pool, stmt.c_str());
         std::vector<std::vector<std::string>> ret;
