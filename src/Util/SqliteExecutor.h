@@ -7,7 +7,6 @@
 #include <string>
 #include "Poller/EventPoller.h"
 #include "QueryBaseMapper.h"
-#include "QueryBuilder.h"
 #include "SqlitePool.h"
 
 namespace toolkit {
@@ -21,23 +20,24 @@ public:
     static SqlitePoolMap &Instance();
     ~SqlitePoolMap() = default;
 
-    SqlitePool::Ptr get(const std::string& tag) {
+    SqlitePool::Ptr get(const std::string& tag, const std::string &path) {
         std::lock_guard<std::mutex> lck(_mtx);
         auto it = _pools.find(tag);
         if (it != _pools.end()) {
             return it->second;
         }
-        return add(tag);
+        return add(tag, path);
     }
 
 private:
     SqlitePoolMap() = default;
 
-    SqlitePool::Ptr add(const std::string& tag) {
+    SqlitePool::Ptr add(const std::string& tag, const std::string &path) {
         std::lock_guard<std::mutex> lck(_mtx);
         auto pool = std::make_shared<SqlitePool>();
-        std::string db_name = tag + ".sqlite";
-        pool->Init(db_name);
+        auto db_name = tag + ".sqlite";
+        auto full_path = path + "/" + db_name;
+        pool->Init(full_path);
         pool->setSize(3 + std::thread::hardware_concurrency());
         return _pools.emplace(tag, pool).first->second;
     }
@@ -51,11 +51,11 @@ class SqliteHelper {
 public: 
     using Ptr = std::shared_ptr<SqliteHelper>;
 
-    SqliteHelper(const std::string &tag) {
+    SqliteHelper(const std::string &tag, const std::string &path) {
         _tag = std::move(tag);
         //Get the pool in the global map for easy management later
         _pool_map = SqlitePoolMap::Instance().shared_from_this();
-        _pool =_pool_map->get(tag);
+        _pool =_pool_map->get(tag, path);
     }
 
     ~SqliteHelper() = default;
