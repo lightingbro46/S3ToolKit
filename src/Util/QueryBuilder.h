@@ -19,17 +19,17 @@ public:
 
     // UPDATE
     QueryBuilder& update(const std::string& table);
-    QueryBuilder& set(const std::vector<std::pair<std::string, variant>>& keyValues);
+    QueryBuilder& set(const std::vector<std::pair<std::string, std::string>>& keyValues);
 
     // INSERT
     QueryBuilder& insertInto(const std::string& table);
-    QueryBuilder& values(const std::vector<std::pair<std::string, variant>>& keyValues);
+    QueryBuilder& values(const std::vector<std::pair<std::string, std::string>>& keyValues);
 
     // DELETE
     QueryBuilder& deleteFrom(const std::string& table);
 
     // Common clauses
-    QueryBuilder& where(const std::string& condition, const std::vector<variant>& params = {});
+    QueryBuilder& where(const std::string& condition, const std::vector<std::string>& params = {});
     QueryBuilder& join(const std::string& clause);
     QueryBuilder& leftJoin(const std::string& clause);
     QueryBuilder& rightJoin(const std::string& clause);
@@ -40,7 +40,7 @@ public:
     QueryBuilder& offset(int offset);
 
     std::string build() const;
-    const std::vector<variant>& getParams() const;
+    const std::vector<std::string>& getParams() const;
 
 private:
     Type _type;
@@ -48,7 +48,7 @@ private:
     std::string _table;
     std::vector<std::string> _joinClauses;
     std::string _whereClause;
-    std::vector<variant> _whereParams;
+    std::vector<std::string> _whereParams;
     std::string _groupByClause;
     std::string _havingClause;
     std::string _orderByClause;
@@ -56,11 +56,11 @@ private:
     int _offset;
 
     // For UPDATE
-    std::vector<std::pair<std::string, variant>> _updateSet;
+    std::vector<std::pair<std::string, std::string>> _updateSet;
 
     // For INSERT
     std::vector<std::string> _insertColumns;
-    std::vector<variant> _insertValues;
+    std::vector<std::string> _insertValues;
 };
 
 class QueryExecutor {
@@ -81,6 +81,15 @@ public:
         return rows;
     }
 
+    // Execute query and return raw rows
+    template<typename Pool, typename Writter>
+    static std::vector<std::vector<std::string>> executeRaw(const std::shared_ptr<Pool> &pool, const std::string &stmt) {
+        Writter writer(pool, stmt.c_str());
+        std::vector<std::vector<std::string>> rows;
+        writer << rows;
+        return rows;
+    }
+
     // Execute INSERT/UPDATE/DELETE and return affected row count
     template<typename Pool, typename Writter>
     static int execDML(const std::shared_ptr<Pool> &pool, const QueryBuilder& builder) {
@@ -92,6 +101,15 @@ public:
                 writer << params[i];
             }
         }
+        std::vector<std::vector<std::string>> ret;
+        writer << ret;
+        return writer.getAffectedRows();
+    }
+
+    // Execute INSERT/UPDATE/DELETE and return affected row count
+    template<typename Pool, typename Writter>
+    static int execDML(const std::shared_ptr<Pool> &pool, const std::string &stmt) {
+        Writter writer(pool, stmt.c_str());
         std::vector<std::vector<std::string>> ret;
         writer << ret;
         return writer.getAffectedRows();

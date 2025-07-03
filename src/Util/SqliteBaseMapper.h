@@ -21,27 +21,30 @@ public:
     static SqlitePoolMap &Instance();
     ~SqlitePoolMap() = default;
 
-    bool add(const std::string& tag, SqlitePool::Ptr pool) {
-        std::lock_guard<std::mutex> lck(_mtx_pool);
-        return _sqlite_pools.emplace(tag, std::move(pool)).second;
-    }
-
-    bool del(const std::string &tag) {
-        std::lock_guard<std::mutex> lck(_mtx_pool);
-        return _sqlite_pools.erase(tag);
-    }
-
     SqlitePool::Ptr get(const std::string& tag) {
-        std::lock_guard<std::mutex> lck(_mtx_pool);
-        auto it = _sqlite_pools.find(tag);
-        return it != _sqlite_pools.end() ? it->second : nullptr;
+        std::lock_guard<std::mutex> lck(_mtx);
+        auto it = _pools.find(tag);
+        if (it != _pools.end()) {
+            return it->second;
+        }
+        return add(tag);
     }
 
 private:
     SqlitePoolMap() = default;
 
-    std::mutex _mtx_pool;
-    std::unordered_map<std::string, SqlitePool::Ptr> _sqlite_pools;
+    SqlitePool::Ptr add(const std::string& tag) {
+        std::lock_guard<std::mutex> lck(_mtx);
+        auto pool = std::make_shared<SqlitePool>();
+        std::string db_name = tag + ".sqlite";
+        pool->Init(db_name);
+        pool->setSize(3 + std::thread::hardware_concurrency());
+        return _pools.emplace(tag, pool).first->second;
+    }
+
+private:
+    std::mutex _mtx;
+    std::unordered_map<std::string, SqlitePool::Ptr> _pools;
 };
 
 class SqliteHelper {
@@ -67,76 +70,30 @@ private:
     SqlitePoolMap::Ptr _pool_map;
 };
 
-template <typename T, typename Derived>
-class SqliteBaseMapper : public BaseMapper<T> {
+class SqliteQueryExecutor {
 public:
-    using Ptr = std::shared_ptr<SqliteBaseMapper>;
+    using Ptr = std::shared_ptr<SqliteQueryExecutor>;
 
-    SqliteBaseMapper(SqlitePool::Ptr pool, EventPoller::Ptr poller = nullptr)
-        : BaseMapper<T>(poller), _pool(pool) {}
-
-    bool insert(const T& obj) override {
-        auto query = QueryBuilder()
-                         .insertInto(Derived::tableName())
-                         .values(Derived::toKeyValuePairs(obj));
-        auto ret = QueryExecutor::execDML<SqlitePool, SqliteWriter>(_pool, query);
-        return ret > 0;
+    SqliteQueryExecutor(const std::string &tag, EventPoller::Ptr poller = nullptr) {
+        _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
+        _helper = std::make_shared<SqliteHelper>(tag);
     }
 
-    bool updateById(const T& obj, const std::string &keyColumn = "id") override {
-        const auto& kv = Derived::toKeyValuePairs(obj);
-        variant key;
-        typename BaseMapper<T>::KeyValuePairs updates;
-        for (const auto& pair : kv) {
-            if (pair.first == keyColumn) {
-                key = pair.second;
-            } else {
-                updates.push_back(pair);
-            }
-        }
-        auto query = QueryBuilder()
-                        .update(Derived::tableName())
-                        .set(updates)
-                        .where(keyColumn + " = ?", {key});
-        auto ret = QueryExecutor::execDML<SqlitePool, SqliteWriter>(_pool, query);
-        return ret > 0;
+    template <typename... ArgsType>
+    bool execDML(ArgsType &&...args) {
+        auto pool = _helper->pool();
+        return QueryExecutor::execDML<SqlitePool, SqliteWriter>(pool, std::forward<ArgsType>(args)...) > 0;
     }
 
-    bool removeById(const std::string &id, const std::string &keyColumn = "id") override {
-        auto query = QueryBuilder()
-                    .deleteFrom(Derived::tableName())
-                    .where(keyColumn + " = ?", {id});
-        auto ret = QueryExecutor::execDML<SqlitePool, SqliteWriter>(_pool, query);
-        return ret > 0;
-    }
-
-    std::unique_ptr<T> findById(const std::string &id, const std::string &keyColumn = "id") override {
-        auto query = QueryBuilder()
-                    .select(Derived::getColumnNames())
-                    .from(Derived::tableName())
-                    .where(keyColumn + " = ?", {id});
-        auto rows = QueryExecutor::executeRaw<SqlitePool, SqliteWriter>(_pool, query);
-        if (!rows.empty()) {
-            auto ret = Derived::fromVector(rows.front());
-            return std::unique_ptr<T>(new T(ret));
-        }
-        return nullptr;
-    }
-
-    std::vector<T> findAll() override {
-        auto query = QueryBuilder()
-                    .select(Derived::getColumnNames())
-                    .from(Derived::tableName());
-        auto rows = QueryExecutor::executeRaw<SqlitePool, SqliteWriter>(_pool, query);
-        std::vector<T> results;
-        for (const auto& row : rows) {
-            results.emplace_back(Derived::fromVector(row));
-        }
-        return results;
+    template <typename... ArgsType>
+    toolkit::SqlitePool::SqlRetType executeRaw(ArgsType &&...args) {
+        auto pool = _helper->pool();
+        return QueryExecutor::executeRaw<SqlitePool, SqliteWriter>(pool, std::forward<ArgsType>(args)...);
     }
 
 protected:
-    SqlitePool::Ptr _pool;
+    SqliteHelper::Ptr _helper;
+    toolkit::EventPoller::Ptr _poller;
 };
 
 } // namespace toolkit

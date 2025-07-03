@@ -21,7 +21,7 @@ QueryBuilder& QueryBuilder::update(const std::string& table) {
     return *this;
 }
 
-QueryBuilder& QueryBuilder::set(const std::vector<std::pair<std::string, variant>>& keyValues) {
+QueryBuilder& QueryBuilder::set(const std::vector<std::pair<std::string, std::string>>& keyValues) {
     _updateSet.insert(_updateSet.end(), keyValues.begin(), keyValues.end());
     return *this;
 }
@@ -32,7 +32,7 @@ QueryBuilder& QueryBuilder::insertInto(const std::string& table) {
     return *this;
 }
 
-QueryBuilder& QueryBuilder::values(const std::vector<std::pair<std::string, variant>>& keyValues) {
+QueryBuilder& QueryBuilder::values(const std::vector<std::pair<std::string, std::string>>& keyValues) {
     for (const auto& pair : keyValues) {
         _insertColumns.push_back(pair.first);
         _insertValues.push_back(pair.second);
@@ -46,7 +46,7 @@ QueryBuilder& QueryBuilder::deleteFrom(const std::string& table) {
     return *this;
 }
 
-QueryBuilder& QueryBuilder::where(const std::string& condition, const std::vector<variant>& params) {
+QueryBuilder& QueryBuilder::where(const std::string& condition, const std::vector<std::string>& params) {
     _whereClause = condition;
     _whereParams = params;
     return *this;
@@ -152,8 +152,8 @@ std::string QueryBuilder::build() const {
     return ss.str();
 }
 
-const std::vector<variant>& QueryBuilder::getParams() const {
-    static std::vector<variant> combined;
+const std::vector<std::string>& QueryBuilder::getParams() const {
+    static std::vector<std::string> combined;
     combined.clear();
     switch (_type) {
         case Type::SELECT:

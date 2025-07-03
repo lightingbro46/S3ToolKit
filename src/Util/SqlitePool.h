@@ -21,6 +21,8 @@ public:
     using PoolType   = ResourcePool<SqliteConnection>;
     using SqlRetType = std::vector<std::vector<std::string>>;
 
+    static SqlitePool &Instance();
+
     SqlitePool() {
         _threadPool = WorkThreadPool::Instance().getExecutor();
         _timer      = std::make_shared<Timer>(
