@@ -1,7 +1,7 @@
 #if defined(ENABLE_SQLITE)
 
 #include "util.h"
-#include "SqliteBaseMapper.h"
+#include "SqliteExecutor.h"
 
 using namespace std;
 

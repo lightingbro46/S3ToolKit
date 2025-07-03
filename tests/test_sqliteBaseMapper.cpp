@@ -1,8 +1,8 @@
 #include <iostream>
 #include "Util/logger.h"
 #if defined(ENABLE_SQLITE)
-#include "Util/SqliteBaseMapper.h"
-#include "Util/SqlitePool.h"
+#include "Util/QueryBaseMapper.h"
+#include "Util/SqliteExecutor.h"
 #endif
 using namespace std;
 using namespace toolkit;
@@ -22,7 +22,7 @@ static const string user_db = "test_db";
 
 class UserEntity : public UserEntry, BaseMapper<UserEntry>, SqliteQueryExecutor {
 public:
-    UserEntity(): UserEntry(), BaseMapper<UserEntry>(user_table), SqliteQueryExecutor(user_db) {}
+    UserEntity(): UserEntry(), BaseMapper<UserEntry>(user_table), SqliteQueryExecutor(user_db, "") {}
     
     void save() {}
 

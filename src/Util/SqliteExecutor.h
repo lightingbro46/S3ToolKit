@@ -7,6 +7,7 @@
 #include <string>
 #include "Poller/EventPoller.h"
 #include "QueryBaseMapper.h"
+#include "QueryBuilder.h"
 #include "SqlitePool.h"
 
 namespace toolkit {
@@ -74,9 +75,9 @@ class SqliteQueryExecutor {
 public:
     using Ptr = std::shared_ptr<SqliteQueryExecutor>;
 
-    SqliteQueryExecutor(const std::string &tag, EventPoller::Ptr poller = nullptr) {
+    SqliteQueryExecutor(const std::string &tag, const std::string &path ,EventPoller::Ptr poller = nullptr) {
         _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
-        _helper = std::make_shared<SqliteHelper>(tag);
+        _helper = std::make_shared<SqliteHelper>(tag, path);
     }
 
     template <typename... ArgsType>
