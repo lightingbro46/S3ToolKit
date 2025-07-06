@@ -108,10 +108,10 @@ public:
         auto stmt = queryString(std::forward<Fmt>(fmt), std::forward<Args>(arg)...);
         auto tmp = expandedSQL(stmt.get());
         DebugL << "Expanded sql: " << tmp;
-        if (doQuery(tmp) != SQLITE_DONE) {
+        if (doQuery(tmp) != SQLITE_OK) {
             throw SqliteException(tmp, sqlite3_errmsg(_db.get()));
         }
-        return SQLITE_OK;
+        return sqlite3_changes(_db.get());
     }
 
     /**
@@ -127,7 +127,7 @@ public:
         auto stmt = queryString(std::forward<Fmt>(fmt), std::forward<Args>(arg)...);
         auto tmp = expandedSQL(stmt.get());
         DebugL << "Expanded sql: " << tmp;
-        if (doQuery(tmp) != SQLITE_DONE) {
+        if (doQuery(tmp) != SQLITE_OK) {
             throw SqliteException(tmp, sqlite3_errmsg(_db.get()));
         }
         rowId = sqlite3_last_insert_rowid(_db.get());

@@ -30,16 +30,16 @@ int main() {
     pool->setSize(3 + thread::hardware_concurrency());
 
     vector<vector<string> > sqlRet;
-    SqliteBaseWriter(pool, "create table test_table(user_name  varchar(128),user_id int auto_increment primary key,user_pwd varchar(128));", false) << sqlRet;
+    SqliteBaseWriter(pool, "create table test_table(user_name TEXT, user_id INTEGER PRIMARY KEY AUTOINCREMENT,user_pwd TEXT);", false) << sqlRet;
 
     // Synchronous insertion
-    SqliteBaseWriter insertSql(pool, "insert into test_table(user_name,user_pwd) values('?','?');");
+    SqliteBaseWriter insertSql(pool, "insert into test_table(user_name,user_pwd) values( ?, ? );");
     insertSql<< "s3toolkit" << "123456" << sqlRet;
     // We can know how many pieces of data were inserted, and we can get the rowID of the newly inserted (first) data
-    DebugL << "AffectedRows:" << insertSql.getAffectedRows() << ",RowID:" << insertSql.getRowID();
+    DebugL << "INSERT: AffectedRows:" << insertSql.getAffectedRows() << ",RowID:" << insertSql.getRowID();
 
-    // Synchronous query
-    SqliteBaseWriter sqlSelect(pool, "select user_id , user_pwd from test_table where user_name='?' limit 1;") ;
+    // // Synchronous query
+    SqliteBaseWriter sqlSelect(pool, "select user_id , user_pwd from test_table where user_name=? limit 1;") ;
     sqlSelect << "s3toolkit" ;
 
     vector<vector<string> > sqlRet0;
@@ -72,14 +72,23 @@ int main() {
     }
 
     // Asynchronous deletion
-    SqliteBaseWriter insertDel(pool, "delete from test_table where user_name='?';");
-    insertDel << "s3toolkit" << endl;
+    // SqliteBaseWriter removeSql(pool, "delete from test_table where user_name=?;");
+    // removeSql << "s3toolkit" << endl;
 
     {
         SqliteTransaction::Ptr txn = std::make_shared<SqliteTransaction>(pool);
-        SqliteTransactionWriter insertSqlWithTransaction(txn, "insert into test_table(user_name,user_pwd) values('?','?');");
+        SqliteTransactionWriter insertSqlWithTransaction(txn, "insert into test_table(user_name,user_pwd) values(?,?);");
+        insertSqlWithTransaction << "s3mediakit";
+        insertSqlWithTransaction << "123456";
+        vector<vector<string>> sqlRet5;
+        insertSqlWithTransaction << sqlRet5;
+        DebugL << "INSERT TRANSACTION: AffectedRows:" << insertSqlWithTransaction.getAffectedRows() << ",RowID:" << insertSqlWithTransaction.getRowID();
+
         txn->commit();
     }
+
+    SqliteBaseWriter removeAllSql(pool, "delete from test_table;");
+    removeAllSql << endl;
 
     // Note!
     // If the "<<" operator of SqliteWriter is followed by SqlitePool::SqlRetType type, it indicates a synchronous operation and waits for the result
@@ -88,6 +97,8 @@ int main() {
     ErrorL << "ENABLE_SQLITE not defined!" << endl;
     return -1;
 #endif//ENABLE_SQLITE
+    // Waiting for excuting async statement
+    sleep(2);
 
     return 0;
 }
