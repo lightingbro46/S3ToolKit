@@ -30,16 +30,16 @@ int main() {
     pool->setSize(3 + thread::hardware_concurrency());
 
     vector<vector<string> > sqlRet;
-    SqliteWriter(pool, "create table test_table(user_name  varchar(128),user_id int auto_increment primary key,user_pwd varchar(128));", false) << sqlRet;
+    SqliteBaseWriter(pool, "create table test_table(user_name  varchar(128),user_id int auto_increment primary key,user_pwd varchar(128));", false) << sqlRet;
 
     // Synchronous insertion
-    SqliteWriter insertSql(pool, "insert into test_table(user_name,user_pwd) values('?','?');");
+    SqliteBaseWriter insertSql(pool, "insert into test_table(user_name,user_pwd) values('?','?');");
     insertSql<< "s3toolkit" << "123456" << sqlRet;
     // We can know how many pieces of data were inserted, and we can get the rowID of the newly inserted (first) data
     DebugL << "AffectedRows:" << insertSql.getAffectedRows() << ",RowID:" << insertSql.getRowID();
 
     // Synchronous query
-    SqliteWriter sqlSelect(pool, "select user_id , user_pwd from test_table where user_name='?' limit 1;") ;
+    SqliteBaseWriter sqlSelect(pool, "select user_id , user_pwd from test_table where user_name='?' limit 1;") ;
     sqlSelect << "s3toolkit" ;
 
     vector<vector<string> > sqlRet0;
@@ -72,8 +72,14 @@ int main() {
     }
 
     // Asynchronous deletion
-    SqliteWriter insertDel(pool, "delete from test_table where user_name='?';");
+    SqliteBaseWriter insertDel(pool, "delete from test_table where user_name='?';");
     insertDel << "s3toolkit" << endl;
+
+    {
+        SqliteTransaction::Ptr txn = std::make_shared<SqliteTransaction>(pool);
+        SqliteTransactionWriter insertSqlWithTransaction(txn, "insert into test_table(user_name,user_pwd) values('?','?');");
+        txn->commit();
+    }
 
     // Note!
     // If the "<<" operator of SqliteWriter is followed by SqlitePool::SqlRetType type, it indicates a synchronous operation and waits for the result
