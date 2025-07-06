@@ -197,7 +197,7 @@ public:
 
     template <typename... Args>
     SqliteStmt queryString(const char *fmt, Args &&...arg) {
-        sqlite3_stmt *stmt = nullptr;
+        sqlite3_stmt *stmt;
         if (sqlite3_prepare_v2(_db.get(), fmt, -1, &stmt, nullptr) != SQLITE_OK) {
             throw SqliteException(sqlite3_sql(stmt), sqlite3_errmsg(_db.get()));
         }
@@ -213,7 +213,7 @@ public:
     }
 
     SqliteStmt queryString(const char *fmt) {
-        sqlite3_stmt *stmt = nullptr;
+        sqlite3_stmt *stmt;
         if (sqlite3_prepare_v2(_db.get(), fmt, -1, &stmt, nullptr) != SQLITE_OK) {
             throw SqliteException(sqlite3_sql(stmt), sqlite3_errmsg(_db.get()));
         }

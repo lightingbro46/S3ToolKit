@@ -263,7 +263,9 @@ public:
     template <typename Row> 
     int64_t operator<<(std::vector<Row>& ret) {
         try {
-            _affectedRows = _pool->syncQuery(_rowId, ret, _sqliteStream.sql(), _sqliteStream.values().begin(), _sqliteStream.values().end());
+            auto sql = _sqliteStream.sql();
+            auto values = _sqliteStream.values();
+            _affectedRows = _pool->syncQuery(_rowId, ret, sql, values.begin(), values.end());
         } catch (std::exception& ex) {
             if (!_throwAble) {
                 WarnL << "SqlitePool::syncQuery failed: " << ex.what();
