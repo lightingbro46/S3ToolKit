@@ -173,11 +173,9 @@ public:
         ret.clear();
         int columnCount = sqlite3_column_count(stmt.get());
 
-        bool hasRow = false;
         int rc = 0;
         while ((rc = doQuery(stmt.get())) == SQLITE_ROW) {
             // SELECT
-            hasRow = true;
             ret.emplace_back();
             auto& back = ret.back();
             for (int i = 0; i < columnCount; ++i) {
@@ -235,11 +233,9 @@ private:
         ret.clear();
         int columnCount = sqlite3_column_count(stmt.get());
 
-        bool hasRow = false;
         int rc = 0;
         while ((rc = doQuery(stmt.get())) == SQLITE_ROW) {
             // SELECT
-            hasRow = true;
             ret.emplace_back();
             auto& back = ret.back();
             for (int i = 0; i < columnCount; ++i) {
