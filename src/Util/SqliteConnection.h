@@ -96,27 +96,24 @@ public:
     ~SqliteConnection() { _db.reset(); }
 
     /**
-     * Execute SQL in sqlite3 style, no data returned
-     * BEGIN TRANSACTION/COMMIT/ROLLBACK
+     * Execute Multi SQL in sqlite3 style, no input args, no data returned
+     * CREATE TABLE/INSERT/UPDATE/DELETE/BEGIN TRANSACTION/COMMIT/ROLLBACK
      * @param rowId Insert rowid when inserting
      * @param fmt printf type fmt
      * @param arg Variable argument list
      * @return Affected rows
      */
-    template <typename Fmt, typename... Args>
-    int64_t query(Fmt &&fmt, Args &&...arg) {
-        auto stmt = queryString(std::forward<Fmt>(fmt), std::forward<Args>(arg)...);
-        auto tmp = expandedSQL(stmt.get());
-        DebugL << "Expanded sql: " << tmp;
-        if (doQuery(tmp) != SQLITE_OK) {
-            throw SqliteException(tmp, sqlite3_errmsg(_db.get()));
+    template <typename Fmt>
+    int64_t query(Fmt &&fmt) {
+        if (doQuery(std::forward<Fmt>(fmt)) != SQLITE_DONE) {
+            throw SqliteException(fmt, sqlite3_errmsg(_db.get()));
         }
-        return sqlite3_changes(_db.get());
+        return SQLITE_DONE;
     }
 
     /**
-     * Execute SQL in sqlite3 style, no data returned
-     * INSERT/UPDATE/DELETE
+     * Execute Single SQL in sqlite3 style, no data returned
+     * INSERT/UPDATE/DELETE/BEGIN TRANSACTION/COMMIT/ROLLBACK
      * @param rowId Insert rowid when inserting
      * @param fmt printf type fmt
      * @param arg Variable argument list
@@ -125,17 +122,16 @@ public:
     template <typename Fmt, typename... Args>
     int64_t query(int64_t &rowId, Fmt &&fmt, Args &&...arg) {
         auto stmt = queryString(std::forward<Fmt>(fmt), std::forward<Args>(arg)...);
-        auto tmp = expandedSQL(stmt.get());
-        DebugL << "Expanded sql: " << tmp;
-        if (doQuery(tmp) != SQLITE_OK) {
-            throw SqliteException(tmp, sqlite3_errmsg(_db.get()));
+
+        if (doQuery(stmt.get()) != SQLITE_DONE) {
+            throw SqliteException(expandedSQL(stmt.get()), sqlite3_errmsg(_db.get()));
         }
         rowId = sqlite3_last_insert_rowid(_db.get());
         return sqlite3_changes(_db.get());
     }
 
     /**
-     * Execute SQL in printf style, and return list type result (excluding column names)
+     * Execute Single SQL in printf style, and return list type result (excluding column names)
      * @param rowId Insert rowid when inserting
      * @param ret Returned data list
      * @param fmt printf type fmt
@@ -158,7 +154,7 @@ public:
     }
     
     /**
-     * Execute SQL in printf style, and return Map type result (including column names)
+     * Execute Single SQL in printf style, and return Map type result (including column names)
      * @param rowId Insert rowid when inserting
      * @param ret Returned data list
      * @param fmt printf type fmt
@@ -168,7 +164,6 @@ public:
     template <typename Map, typename Fmt, typename... Args>
     int64_t query(int64_t &rowId, std::vector<Map> &ret, Fmt &&fmt, Args &&...arg) {
         auto stmt = queryString(std::forward<Fmt>(fmt), std::forward<Args>(arg)...);
-        DebugL << "Expanded sql: " << expandedSQL(stmt.get());
 
         ret.clear();
         int columnCount = sqlite3_column_count(stmt.get());
@@ -228,7 +223,6 @@ private:
     template <typename List, typename Fmt, typename... Args>
     int64_t queryList(int64_t &rowId, std::vector<List> &ret, Fmt &&fmt, Args &&...arg) {
         auto stmt = queryString(std::forward<Fmt>(fmt), std::forward<Args>(arg)...);
-        DebugL << "Expanded sql: " << expandedSQL(stmt.get());
 
         ret.clear();
         int columnCount = sqlite3_column_count(stmt.get());
@@ -261,6 +255,7 @@ private:
     }
 
     int doQuery(sqlite3_stmt *stmt) {
+        DebugL << "Expanded sql: " <<  expandedSQL(stmt);
         return sqlite3_step(stmt);
     }
 
@@ -269,7 +264,24 @@ private:
     }
 
     int doQuery(const char *sql) {
-        return sqlite3_exec(_db.get(), sql, nullptr, nullptr, nullptr);
+        const char *tail = sql;
+        int rc;
+        sqlite3_stmt *stmt;
+        
+        while (*tail) {
+            // Parse câu lệnh tiếp theo
+            rc = sqlite3_prepare_v2(_db.get(), tail, -1, &stmt, &tail);
+            if (rc != SQLITE_OK) {
+                break;
+            }
+            auto _stmt = SqliteStmt(stmt);
+            DebugL << "Expanded sql: " << expandedSQL(_stmt.get());
+            rc = sqlite3_step(_stmt.get());
+            if (rc != SQLITE_DONE) {
+                break;
+            }
+        }
+        return rc;
     }
 
     inline std::string expandedSQL(sqlite3_stmt* stmt) const {
@@ -311,6 +323,7 @@ private:
         return bindAllImpl(stmt, 1, std::forward<Args>(args)...);
     }
 
+    // todo: Còn lỗi xung đột Variadic template khi đầu vào là 2 string hoặc int
     template<typename Iter>
     int bindAll(sqlite3_stmt* stmt, Iter begin, Iter end) {
         int idx = 1;

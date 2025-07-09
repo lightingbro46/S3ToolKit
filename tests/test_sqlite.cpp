@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #include "Util/logger.h"
+#include "Util/File.h"
 #if defined(ENABLE_SQLITE)
 #include "Util/SqlitePool.h"
 #endif
@@ -90,6 +91,18 @@ int main() {
     SqliteBaseWriter removeAllSql(pool, "delete from test_table;");
     removeAllSql << endl;
 
+    // This execute only one stmt 1 below
+    vector<vector<string> > sqlRet6;
+    SqliteBaseWriter(pool, "create table test_double_1(user_name TEXT, user_id INTEGER PRIMARY KEY AUTOINCREMENT,user_pwd TEXT);" 
+         "create table test_double_2(user_name TEXT, user_id INTEGER PRIMARY KEY AUTOINCREMENT,user_pwd TEXT);", false) << sqlRet6;
+
+    // This execute both stmts below
+    {
+        SqliteTransaction::Ptr txn = std::make_shared<SqliteTransaction>(pool);
+        txn->execScript("create table test_double_3(user_name TEXT, user_id INTEGER PRIMARY KEY AUTOINCREMENT,user_pwd TEXT);"
+                        "create table test_double_4(user_name TEXT, user_id INTEGER PRIMARY KEY AUTOINCREMENT,user_pwd TEXT);");
+        txn->commit();
+    }    
     // Note!
     // If the "<<" operator of SqliteWriter is followed by SqlitePool::SqlRetType type, it indicates a synchronous operation and waits for the result
     // If followed by std::endl, it is an asynchronous operation, which completes the sql operation in the background thread.
@@ -99,6 +112,6 @@ int main() {
 #endif//ENABLE_SQLITE
     // Waiting for excuting async statement
     sleep(2);
-
+    File::delete_file("./test_db.sqlite");
     return 0;
 }

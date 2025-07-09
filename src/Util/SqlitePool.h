@@ -305,13 +305,13 @@ public:
     // Acquire a connection from the pool and begin a transaction
     explicit SqliteTransaction(const SqlitePool::Ptr& pool) : _pool(pool), _committed(false) {
         _conn = _pool->getConnection();
-        _conn->query("BEGIN TRANSACTION");
+        _conn->query("BEGIN TRANSACTION;");
     }
 
     ~SqliteTransaction() {
         if (!_committed && _conn) {
             try {
-                _conn->query("ROLLBACK");
+                _conn->query("ROLLBACK;");
             } catch (const std::exception& ex) {
                 WarnL << "SqliteTransaction rollback failed: " << ex.what();
             }
@@ -323,7 +323,7 @@ public:
     // Commit the transaction
     void commit() {
         if (!_committed && _conn) {
-            _conn->query("COMMIT");
+            _conn->query("COMMIT;");
             _committed = true;
         }
     }
@@ -331,7 +331,7 @@ public:
     // Rollback the transaction manually
     void rollback() {
         if (!_committed && _conn) {
-            _conn->query("ROLLBACK");
+            _conn->query("ROLLBACK;");
             _committed = true;
         }
     }
@@ -358,6 +358,15 @@ public:
         try {
             // Capture execution exceptions
             return _conn->query(std::forward<Args>(arg)...);
+        } catch (std::exception& e) {
+            throw;
+        }
+    }
+
+    int64_t execScript(const std::string &script) {
+        try {
+            // Capture execution exceptions
+            return _conn->query(script);
         } catch (std::exception& e) {
             throw;
         }
