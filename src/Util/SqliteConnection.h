@@ -255,7 +255,7 @@ private:
     }
 
     int doQuery(sqlite3_stmt *stmt) {
-        DebugL << "Expanded sql: " <<  expandedSQL(stmt);
+        TraceL << "Expanded sql: " <<  expandedSQL(stmt);
         return sqlite3_step(stmt);
     }
 
@@ -275,7 +275,7 @@ private:
                 break;
             }
             auto _stmt = SqliteStmt(stmt);
-            DebugL << "Expanded sql: " << expandedSQL(_stmt.get());
+            TraceL << "Expanded sql: " << expandedSQL(_stmt.get());
             rc = sqlite3_step(_stmt.get());
             if (rc != SQLITE_DONE) {
                 break;
