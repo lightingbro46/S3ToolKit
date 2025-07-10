@@ -280,6 +280,10 @@ private:
             if (rc != SQLITE_DONE) {
                 break;
             }
+            // Bỏ qua khoảng trắng, dấu chấm phẩy thừa giữa các câu
+            while (*tail == ' ' || *tail == '\t' || *tail == '\n' || *tail == ';') {
+                tail++;
+            }
         }
         return rc;
     }
