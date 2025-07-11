@@ -77,6 +77,11 @@ public:
      */
     void setOnCreateSocket(onCreateSocket cb);
 
+    /**
+     * @brief Join multicast address after listen on port
+     */
+    void joinMultiAddr(const std::string &multicast_addr);
+
 protected:
     virtual Ptr onCreatServer(const EventPoller::Ptr &poller);
     virtual void cloneFrom(const UdpServer &that);
