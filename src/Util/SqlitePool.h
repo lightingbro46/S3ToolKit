@@ -155,7 +155,7 @@ private:
 
 private:
     struct sqlQuery {
-        sqlQuery(const std::string& sql, std::vector<std::string> values, int cnt) : sql_str(sql), tryCnt(cnt), values_vec(values) {}
+        sqlQuery(const std::string& sql, std::vector<std::string> values, int cnt) : sql_str(sql), values_vec(values), tryCnt(cnt) {}
 
         std::string sql_str;
         std::vector<std::string> values_vec;
