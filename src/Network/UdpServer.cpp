@@ -356,11 +356,6 @@ void UdpServer::joinMultiAddr(const std::string &multicast_addr) {
         if (-1 == SockUtil::joinMultiAddr(_socket->rawFD(), multicast_addr.data())) {
             throw std::runtime_error("join multicast fail!");
         }
-
-        for (auto &pr: _cloned_server) {
-            //join multicast address in the child server
-            SockUtil::joinMultiAddr(pr.second->_socket->rawFD(), multicast_addr.data());
-        }
         InfoL << "UDP server join to multicast address [" << multicast_addr << "]";
     }
 }
