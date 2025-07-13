@@ -82,6 +82,11 @@ public:
      */
     void joinMultiAddr(const std::string &multicast_addr);
 
+    /**
+     * @brief Leave multicast address
+     */
+    void leaveMultiAddr(const std::string &multicast_addr);
+
 protected:
     virtual Ptr onCreatServer(const EventPoller::Ptr &poller);
     virtual void cloneFrom(const UdpServer &that);

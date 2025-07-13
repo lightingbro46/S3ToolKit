@@ -360,6 +360,16 @@ void UdpServer::joinMultiAddr(const std::string &multicast_addr) {
     }
 }
 
+void UdpServer::leaveMultiAddr(const std::string &multicast_addr) {
+    if (_socket) {
+        //leave multicast address in the main server
+        if (-1 == SockUtil::leaveMultiAddr(_socket->rawFD(), multicast_addr.data())) {
+            throw std::runtime_error("leave multicast fail!");
+        }
+        InfoL << "UDP server leave out multicast address [" << multicast_addr << "]";
+    }
+}
+
 StatisticImp(UdpServer)
 
 } // namespace toolkit

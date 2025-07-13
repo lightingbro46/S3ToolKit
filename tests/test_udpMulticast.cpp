@@ -53,9 +53,9 @@ int main() {
     int i = 0;
     while(!exitProgram){
         // Send data to the other side every second
-        sockSend->send(to_string(i++), (struct sockaddr *)&addrDst);
+        sockSend->send("M-SEARCH * HTTP/1.1", (struct sockaddr *)&addrDst);
         InfoL << "send";
-        sleep(1);
+        sleep(10);
     }
     return 0;
 }
