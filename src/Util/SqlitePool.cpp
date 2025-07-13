@@ -10,6 +10,8 @@ using namespace std;
 
 namespace toolkit {
 
+INSTANCE_IMP(SqlitePool)
+
 } /* namespace toolkit */
 
 #endif // defined(ENABLE_SQLITE)
