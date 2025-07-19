@@ -503,6 +503,16 @@ private:
     mutable func _impl;
 };
 
+/**
+ * Format by uuid/guid form
+ */
+std::string format_guid(const std::string &s);
+
+/**
+ * Generate uuid/guid
+ */
+std::string generate_guid();
+
 }  // namespace toolkit
 
 #ifdef __cplusplus
@@ -517,10 +527,5 @@ extern void Assert_Throw(int failed, const char *exp, const char *func, const ch
  * Get hardware uuid
  */
 std::string getHardwareUUID();
-
-/**
- * Format by uuid/guid form
- */
-std::string format_guid(const std::string &s);
 
 #endif /* UTIL_UTIL_H_ */

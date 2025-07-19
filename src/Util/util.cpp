@@ -639,6 +639,16 @@ void Creator::onDestoryException(const type_info &info, const exception &ex) {
     ErrorL << "Invoke " << demangle(info.name()) << "::onDestory throw a exception: " << ex.what();
 }
 
+std::string format_guid(const std::string& s) {
+    if (s.length() != 32) return "";
+    return s.substr(0,8) + "-" + s.substr(8,4) + "-" + s.substr(12,4) + "-" +
+           s.substr(16,4) + "-" + s.substr(20,12);
+}
+
+std::string generate_guid() {
+    return format_guid(strToLower(makeRandStr(32)));
+}
+
 }  // namespace toolkit
 
 
@@ -784,9 +794,3 @@ std::string getHardwareUUID() {
 }
 
 #endif
-
-std::string format_guid(const std::string& s) {
-    if (s.length() != 32) return "";
-    return s.substr(0,8) + "-" + s.substr(8,4) + "-" + s.substr(12,4) + "-" +
-           s.substr(16,4) + "-" + s.substr(20,12);
-}
