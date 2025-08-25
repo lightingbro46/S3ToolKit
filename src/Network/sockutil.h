@@ -338,6 +338,11 @@ public:
      * Determine if it is an IPv6 address
      */
     static bool is_ipv6(const char *str);
+
+    /**
+     * Get ipv4 range from start ip to end ip
+     */
+    static std::vector<std::string> get_ipv4_range(const std::string &startIp, const std::string &endIp);
 };
 
 }  // namespace toolkit

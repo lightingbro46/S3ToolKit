@@ -1129,4 +1129,23 @@ struct sockaddr_storage SockUtil::make_sockaddr(const char *host, uint16_t port)
     throw std::invalid_argument(string("Not ip address: ") + host);
 }
 
+vector<string> SockUtil::get_ipv4_range(const string& startIp, const string& endIp) {
+    vector<string> result;
+    struct in_addr start, end;
+    if (inet_pton(AF_INET, startIp.c_str(), &start) != 1 ||
+        inet_pton(AF_INET, endIp.c_str(), &end) != 1) {
+        return result; // invalid input
+    }
+    uint32_t s = ntohl(start.s_addr);
+    uint32_t e = ntohl(end.s_addr);
+    for (uint32_t ip = s; ip <= e; ++ip) {
+        struct in_addr addr;
+        addr.s_addr = htonl(ip);
+        char buf[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &addr, buf, INET_ADDRSTRLEN);
+        result.push_back(buf);
+    }
+    return result;
+}
+
 }  // namespace toolkit
