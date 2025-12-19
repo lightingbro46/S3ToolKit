@@ -1,16 +1,8 @@
 ﻿#ifndef SEMAPHORE_H_
 #define SEMAPHORE_H_
 
- /*
- * Currently, it is found that semaphores have issues on 32-bit systems,
- * sleeping threads cannot be normally woken up, disable them for now
- #if defined(__linux__)
- #include <semaphore.h>
- #define HAVE_SEM
- #endif //HAVE_SEM
-*/
-
 #include <mutex>
+#include <chrono>
 #include <condition_variable>
 
 namespace toolkit {
@@ -21,7 +13,7 @@ public:
 #if defined(HAVE_SEM)
         sem_init(&_sem, 0, initial);
 #else
-        _count = 0;
+        _count = initial;
 #endif
     }
 
@@ -56,6 +48,52 @@ public:
             _condition.wait(lock);
         }
         --_count;
+#endif
+    }
+
+    bool wait(unsigned int timeout_ms) {
+#if defined(HAVE_SEM)
+        struct timespec ts;
+        // Get current time
+        if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
+            perror("clock_gettime failed");
+            return -1;
+        }
+        // Add timeout to current time to get absolute time
+        ts.tv_sec += timeout_ms / 1000;
+        ts.tv_nsec += (timeout_ms % 1000) * 1000000;
+        if (ts.tv_nsec >= 1000000000) {
+            ts.tv_sec += ts.tv_nsec / 1000000000;
+            ts.tv_nsec = ts.tv_nsec % 1000000000;
+        }
+        sem_timedwait(&_sem, &ts);
+
+        struct timespec ts;
+        if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
+            return false;
+        }
+
+        ts.tv_sec += timeout_ms / 1000;
+        ts.tv_nsec += (timeout_ms % 1000) * 1000000;
+        if (ts.tv_nsec >= 1000000000) {
+            ts.tv_sec += ts.tv_nsec / 1000000000;
+            ts.tv_nsec = ts.tv_nsec % 1000000000;
+        }
+
+        int result = sem_timedwait(&_sem, &ts);
+        return result == 0; // Returns true on success, false on timeout/failure
+#else
+
+        std::unique_lock<std::recursive_mutex> lock(_mutex);
+        auto now = std::chrono::system_clock::now();
+        auto waitTime = now + std::chrono::milliseconds(timeout_ms);
+
+        bool success = _condition.wait_until(lock, waitTime, [this] { return _count > 0; });
+
+        if (success) {
+            --_count;
+        }
+        return success;
 #endif
     }
 

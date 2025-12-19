@@ -1,4 +1,5 @@
-﻿#include <memory>
+#include <memory>
+#include <atomic>
 #include "TaskExecutor.h"
 #include "Poller/EventPoller.h"
 #include "Util/onceToken.h"
@@ -166,6 +167,41 @@ void TaskExecutorGetterImp::getExecutorDelay(const function<void(const vector<in
         }, false);
         ++index;
     }
+}
+
+using onGetExecutor = std::function<void(const TaskExecutor::Ptr &)>;
+class onGetExecutorCB {
+public:
+    onGetExecutorCB(onGetExecutor cb): _cb(std::move(cb)) {}
+
+    void operator()(const TaskExecutor::Ptr &exe) {
+        bool expected = false;
+        if (_done.compare_exchange_strong(expected, true)) {
+            _cb(exe);
+            _cb = nullptr;
+        }
+    }
+
+private:
+    std::atomic<bool> _done { false };
+    std::function<void(const TaskExecutor::Ptr &)> _cb;
+};
+
+void TaskExecutorGetterImp::getExecutor(const onGetExecutor &cb) {
+    auto callback = std::make_shared<onGetExecutorCB>(cb);
+    auto thread_pos = _thread_pos;
+    if (thread_pos >= _threads.size()) {
+        thread_pos = 0;
+    }
+    for (size_t i = 0; i < _threads.size(); ++i) {
+        ++thread_pos;
+        if (thread_pos >= _threads.size()) {
+            thread_pos = 0;
+        }
+        auto &th = _threads[thread_pos];
+        th->async([th, callback]() mutable { (*callback)(th); }, false);
+    }
+    _thread_pos = thread_pos;
 }
 
 void TaskExecutorGetterImp::for_each(const function<void(const TaskExecutor::Ptr &)> &cb) {

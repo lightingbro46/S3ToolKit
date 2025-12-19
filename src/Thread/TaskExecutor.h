@@ -192,6 +192,12 @@ public:
     virtual TaskExecutor::Ptr getExecutor() = 0;
 
     /**
+     * Asynchronously obtain the task executor with the lowest latency
+     * @param cb callback
+     */
+    virtual void getExecutor(const std::function<void(const TaskExecutor::Ptr &)> &cb) = 0;
+
+    /**
      * Get the number of actuators
      */
     virtual size_t getExecutorSize() const = 0;
@@ -207,6 +213,12 @@ public:
      * @return Task executor
      */
     TaskExecutor::Ptr getExecutor() override;
+
+    /**
+     * Asynchronously obtain the task executor with the lowest latency
+     * @param cb callback
+     */
+    void getExecutor(const std::function<void(const TaskExecutor::Ptr &)> &cb) override;
 
     /**
      * Get the load rate of all threads

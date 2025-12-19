@@ -100,6 +100,52 @@ string makeRandStr(int sz, bool printable) {
     return ret;
 }
 
+uint64_t makeRandNum() {
+    // 生成一个 64 位的随机整数
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
+    uint64_t id = dist(mt);
+
+    return id;
+}
+
+string makeUuidStr() {
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<uint64_t> dist(0, 15);
+    std::uniform_int_distribution<uint64_t> dist2(8, 11);
+    uint64_t id = dist(mt);
+
+    std::stringstream ret;
+    ret << std::hex;
+
+    for (int i = 0; i < 8; i++) {
+        ret << dist(mt);
+    }
+    ret << "-";
+
+    for (int i = 0; i < 4; i++) {
+        ret << dist(mt);
+    }
+    ret << "-4";  //版本4表示
+
+    for (int i = 0; i < 3; i++) {
+        ret << dist2(mt);
+    }
+    ret << "-";
+
+    for (int i = 0; i < 3; i++) {
+        ret << dist(mt);
+    }
+    ret << "-";
+
+    for (int i = 0; i < 12; i++) {
+        ret << dist(mt);
+    }
+    return ret.str();
+}
+
 bool is_safe(uint8_t b) {
     return b >= ' ' && b < 128;
 }
@@ -370,13 +416,16 @@ static atomic<uint64_t> s_currentMicrosecond_system(getCurrentMicrosecondOrigin(
 static atomic<uint64_t> s_currentMillisecond_system(getCurrentMicrosecondOrigin() / 1000);
 
 static inline bool initMillisecondThread() {
-    static std::thread s_thread([]() {
+    auto running = std::make_shared<bool>(true);
+    auto lam = [running]() {
+        // 确该保线程退出前日志打印可用
+        auto logger = Logger::Instance().shared_from_this();
         setThreadName("stamp thread");
         DebugL << "Stamp thread started";
         uint64_t last = getCurrentMicrosecondOrigin();
         uint64_t now;
         uint64_t microsecond = 0;
-        while (true) {
+        while (*running) {
             now = getCurrentMicrosecondOrigin();
             //Record system timestamp, can be rolled back
             s_currentMicrosecond_system.store(now, memory_order_release);
@@ -396,9 +445,11 @@ static inline bool initMillisecondThread() {
             //Sleep for 0.5 ms
             usleep(500);
         }
-    });
-    static onceToken s_token([]() {
-        s_thread.detach();
+    };
+    static std::shared_ptr<std::thread> s_thread(new std::thread(lam), [running](std::thread *t) {
+        *running = false;
+        t->join();
+        delete t;
     });
     return true;
 }

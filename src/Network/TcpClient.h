@@ -55,6 +55,14 @@ public:
      */
     std::string getIdentifier() const override;
 
+    size_t getSendSpeed() const;
+
+    size_t getRecvSpeed() const;
+
+    size_t getRecvTotalBytes() const;
+
+    size_t getSendTotalBytes() const;
+
 protected:
     /**
      * Connection result callback

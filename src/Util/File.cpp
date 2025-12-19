@@ -102,9 +102,8 @@ FILE *File::create_file(const std::string &file, const std::string &mode) {
             break;
         }
         if (_access(dir.data(), 0) == -1) { //The access function is to check whether it exists
-            if (mkdir(dir.data(), 0777) == -1) {  //If it does not exist, use the mkdir function to create
-                WarnL << "mkdir " << dir << " failed: " << get_uv_errmsg();
-                return nullptr;
+            if (mkdir(dir.data(), 0777) == -1) { //If it does not exist, use the mkdir function to create it
+                TraceL << "mkdir " << dir << " failed: " << get_uv_errmsg();
             }
         }
     }
@@ -320,7 +319,7 @@ uint64_t File::fileSize(FILE *fp, bool remain_size) {
     }
     auto current = ftell64(fp);
     fseek64(fp, 0L, SEEK_END); /* Position to the end of the file */
-    auto end = ftell64(fp); /* 得到文件大小 */
+    auto end = ftell64(fp); /* Get file size */
     fseek64(fp, current, SEEK_SET);
     return end - (remain_size ? current : 0);
 }

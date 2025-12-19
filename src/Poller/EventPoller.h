@@ -24,6 +24,16 @@
 #define HAS_KQUEUE
 #endif // __APPLE__
 
+#if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
+#if defined(_WIN32)
+using epoll_fd = void *;
+constexpr epoll_fd INVALID_EVENT_FD = nullptr;
+#else
+using epoll_fd = int;
+constexpr epoll_fd INVALID_EVENT_FD = -1;
+#endif
+#endif
+
 namespace toolkit {
 
 class EventPoller : public TaskExecutor, public AnyStorage, public std::enable_shared_from_this<EventPoller> {
@@ -36,10 +46,10 @@ public:
     using DelayTask = TaskCancelableImp<uint64_t(void)>;
 
     typedef enum {
-        Event_Read = 1 << 0, //Read events
-        Event_Write = 1 << 1, //Write events
-        Event_Error = 1 << 2, //Error Event
-        Event_LT = 1 << 3,//Horizontal trigger
+        Event_Read = 1 << 0, // Read event
+        Event_Write = 1 << 1, // Write event
+        Event_Error = 1 << 2, // Error event
+        Event_LT = 1 << 3,   // horizontal trigger
     } Poll_Event;
 
     ~EventPoller();
@@ -75,6 +85,11 @@ public:
      * @return -1: failed, 0: success
      */
     int modifyEvent(int fd, int event, PollCompleteCB cb = nullptr);
+
+    /**
+     * Return to get how many fd events are monitored
+     */
+    size_t fdCount() const;
 
     /**
      * Executes a task asynchronously
@@ -129,7 +144,7 @@ public:
     /**
      * Get the thread name
      */
-    const std::string& getThreadName() const;
+    const std::string &getThreadName() const;
 
 private:
     /**
@@ -167,12 +182,12 @@ private:
     /**
      * Refresh delayed tasks
      */
-    uint64_t flushDelayTask(uint64_t now);
+    int64_t flushDelayTask(uint64_t now);
 
     /**
      * Get the sleep time for select or epoll
      */
-    uint64_t getMinDelay();
+    int64_t getMinDelay();
 
     /**
      * Add pipe listening event
@@ -183,32 +198,34 @@ private:
     class ExitException : public std::exception {};
 
 private:
-// Mark the loop thread as exited
+    // Mark the loop thread as exited
     bool _exit_flag;
-// Thread name
+    // Count how many fds are monitored
+    size_t _fd_count = 0;
+    // Thread name
     std::string _name;
-// Shared read buffer for all sockets under the current thread
+    // Shared read buffer for all sockets under the current thread
     std::weak_ptr<SocketRecvBuffer> _shared_buffer[2];
-// Thread that executes the event loop
+    // Thread that executes the event loop
     std::thread *_loop_thread = nullptr;
-// Notify the event loop thread that it has started
+    // Notify the event loop thread that it has started
     semaphore _sem_run_started;
 
-// Internal event pipe
+    // Internal event pipe
     PipeWrap _pipe;
-// Tasks switched from other threads
+    // Tasks switched from other threads
     std::mutex _mtx_task;
     List<Task::Ptr> _list_task;
 
-// Keep the log available
+    // Keep the log available
     Logger::Ptr _logger;
 
 #if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
-// epoll and kqueue related
-    int _event_fd = -1;
-    std::unordered_map<int, std::shared_ptr<PollEventCB> > _event_map;
+    // epoll and kqueue related
+    epoll_fd _event_fd = INVALID_EVENT_FD;
+    std::unordered_map<int, std::shared_ptr<PollEventCB>> _event_map;
 #else
-// select related
+    // select related
     struct Poll_Record {
         using Ptr = std::shared_ptr<Poll_Record>;
         int fd;
@@ -217,7 +234,7 @@ private:
         PollEventCB call_back;
     };
     std::unordered_map<int, Poll_Record::Ptr> _event_map;
-#endif //HAS_EPOLL
+#endif // HAS_EPOLL
     std::unordered_set<int> _event_cache_expired;
 
     //Timer related
@@ -228,7 +245,7 @@ class EventPollerPool : public std::enable_shared_from_this<EventPollerPool>, pu
 public:
     using Ptr = std::shared_ptr<EventPollerPool>;
     static const std::string kOnStarted;
-    #define EventPollerPoolOnStartedArgs EventPollerPool &pool, size_t &size
+#define EventPollerPoolOnStartedArgs EventPollerPool &pool, size_t &size
 
     ~EventPollerPool() = default;
 
@@ -279,5 +296,5 @@ private:
     bool _prefer_current_thread = true;
 };
 
-}  // namespace toolkit
+} // namespace toolkit
 #endif /* EventPoller_h */

@@ -17,6 +17,7 @@ TcpServer::TcpServer(const EventPoller::Ptr &poller) : Server(poller) {
 void TcpServer::setupEvent() {
     _socket = createSocket(_poller);
     weak_ptr<TcpServer> weak_self = std::static_pointer_cast<TcpServer>(shared_from_this());
+#if 1
     _socket->setOnBeforeAccept([weak_self](const EventPoller::Ptr &poller) -> Socket::Ptr {
         if (auto strong_self = weak_self.lock()) {
             return strong_self->onBeforeAcceptConnection(poller);
@@ -33,6 +34,22 @@ void TcpServer::setupEvent() {
             });
         }
     });
+#else
+    _socket->setOnAccept([weak_self](Socket::Ptr &sock, shared_ptr<void> &complete) {
+        if (auto strong_self = weak_self.lock()) {
+            if (strong_self->_multi_poller) {
+                EventPollerPool::Instance().getExecutor([sock, complete, weak_self](const TaskExecutor::Ptr &exe) {
+                    if (auto strong_self = weak_self.lock()) {
+                        sock->moveTo(static_pointer_cast<EventPoller>(exe));
+                        strong_self->getServer(sock->getPoller().get())->onAcceptConnection(sock);
+                    }
+                });
+            } else {
+                strong_self->onAcceptConnection(sock);
+            }
+        }
+    });
+#endif
 }
 
 TcpServer::~TcpServer() {
@@ -84,6 +101,7 @@ void TcpServer::cloneFrom(const TcpServer &that) {
     _main_server = false;
     _on_create_socket = that._on_create_socket;
     _session_alloc = that._session_alloc;
+    _multi_poller = that._multi_poller;
     weak_ptr<TcpServer> weak_self = std::static_pointer_cast<TcpServer>(shared_from_this());
     _timer = std::make_shared<Timer>(2.0f, [weak_self]() -> bool {
         auto strong_self = weak_self.lock();

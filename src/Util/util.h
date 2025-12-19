@@ -193,6 +193,8 @@ public:
 };
 
 std::string makeRandStr(int sz, bool printable = true);
+uint64_t makeRandNum();
+std::string makeUuidStr();
 std::string hexdump(const void *buf, size_t len);
 std::string hexmem(const void* buf, size_t len);
 std::string exePath(bool isExe = true);
@@ -359,6 +361,18 @@ public:
     }
 
     template <typename T, typename... ArgsType>
+    static Any make(ArgsType &&...args) {
+        Any ret;
+        ret.set<T>(std::forward<ArgsType>(args)...);
+        return ret;
+    }
+
+    template <typename T>
+    Any(std::shared_ptr<T> data) {
+        set<T>(std::move(data));
+    }
+
+    template <typename T, typename... ArgsType>
     void set(ArgsType &&...args) {
         _type = &typeid(T);
         _data.reset(new T(std::forward<ArgsType>(args)...), [](void *ptr) { delete (T *)ptr; });
@@ -385,9 +399,22 @@ public:
         return *((T *)_data.get());
     }
 
+    void *get() { return _data.get(); }
+
     template <typename T>
     const T &get(bool safe = true) const {
         return const_cast<Any &>(*this).get<T>(safe);
+    }
+
+    template <typename T>
+    std::shared_ptr<T> get_shared(bool safe = true) {
+        if (!_data) {
+            throw std::invalid_argument("Any is empty");
+        }
+        if (safe && !is<T>()) {
+            throw std::invalid_argument("Any::get(): " + demangle(_type->name()) + " unable cast to " + demangle(typeid(T).name()));
+        }
+        return std::static_pointer_cast<T>(_data);
     }
 
     template <typename T>
@@ -396,7 +423,8 @@ public:
     }
 
     operator bool() const { return _data.operator bool(); }
-    bool empty() const { return !operator bool(); }
+
+    bool empty() const { return !bool(); }
 
     void reset() {
         _type = nullptr;

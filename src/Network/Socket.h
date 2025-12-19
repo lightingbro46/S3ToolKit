@@ -164,9 +164,9 @@ public:
      * @param num File descriptor, int number
      * @param poller Event listener
      */
-    SockFD(SockNum::Ptr num, const EventPoller::Ptr &poller) {
+    SockFD(SockNum::Ptr num, EventPoller::Ptr poller) {
         _num = std::move(num);
-        _poller = poller;
+        _poller = std::move(poller);
     }
 
     /**
@@ -174,9 +174,9 @@ public:
      * @param that Source object
      * @param poller Event listener
      */
-    SockFD(const SockFD &that, const EventPoller::Ptr &poller) {
+    SockFD(const SockFD &that, EventPoller::Ptr poller) {
         _num = that._num;
-        _poller = poller;
+        _poller = std::move(poller);
         if (_poller == that._poller) {
             throw std::invalid_argument("Copy a SockFD with same poller");
         }
@@ -335,7 +335,13 @@ public:
      * @param other Original socket object
      * @return Whether successful
      */
-    bool cloneSocket(const Socket &other);
+    std::shared_ptr<void> cloneSocket(const Socket &other);
+
+    /**
+     * Switch poller thread, note that it can only be called before onAccept
+     * @param poller new thread
+     */
+    void moveTo(EventPoller::Ptr poller);
 
     //////////// Set event callbacks ////////////
 
@@ -489,12 +495,22 @@ public:
     /**
      * Get the receiving rate, in bytes/s
      */
-    int getRecvSpeed();
+    size_t getRecvSpeed();
 
     /**
      * Get the sending rate, in bytes/s
      */
-    int getSendSpeed();
+    size_t getSendSpeed();
+
+    /**
+     * Get the total recv bytes
+     */
+    size_t getRecvTotalBytes();
+
+    /**
+     * Get the total send bytes
+     */
+    size_t getSendTotalBytes();
 
     ////////////SockInfo override////////////
     std::string get_local_ip() override;
@@ -502,6 +518,8 @@ public:
     std::string get_peer_ip() override;
     uint16_t get_peer_port() override;
     std::string getIdentifier() const override;
+    const sockaddr *get_peer_addr();
+    const sockaddr *get_local_addr();
 
 private:
     Socket(EventPoller::Ptr poller, bool enable_mutex = true);
@@ -591,6 +609,7 @@ public:
     SockSender() = default;
     virtual ~SockSender() = default;
     virtual ssize_t send(Buffer::Ptr buf) = 0;
+    virtual ssize_t sendto(Buffer::Ptr buf, struct sockaddr *addr = nullptr, socklen_t addr_len = 0) = 0;
     virtual void shutdown(const SockException &ex = SockException(Err_shutdown, "self shutdown")) = 0;
 
     //Send char *
@@ -675,6 +694,8 @@ public:
     uint16_t get_local_port() override;
     std::string get_peer_ip() override;
     uint16_t get_peer_port() override;
+    const sockaddr *get_peer_addr();
+    const sockaddr *get_local_addr();
 
     ///////////////////// TaskExecutorInterface override /////////////////////
     /**
@@ -696,6 +717,11 @@ public:
      * Unified data sending outlet
      */
     ssize_t send(Buffer::Ptr buf) override;
+	
+    /**
+     * Unified export for sending data
+     */
+    ssize_t sendto(Buffer::Ptr buf, struct sockaddr *addr = nullptr, socklen_t addr_len = 0) override;
 
     /**
      * Trigger the onErr event
