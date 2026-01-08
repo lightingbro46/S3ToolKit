@@ -331,7 +331,9 @@ private:
     uint32_t _ts_recent = 0; // Timestamp of the most recent received packet
     uint32_t _ts_lastack = 0;// Timestamp of the most recent sent ACK
 
-    // RTT
+    // rtt
+    int32_t _rx_rttval = 0;  //RTT variance
+    int32_t _rx_srtt = 0;    //RTT (after smoothing)
     int32_t _rx_rto = IKCP_RTO_DEF; // Retransmission timeout (dynamically adjusted based on RTT and RTT variance)
     int32_t _rx_minrto = IKCP_RTO_MIN; // Minimum retransmission timeout to prevent RTO from being too small
 
