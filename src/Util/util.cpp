@@ -101,7 +101,7 @@ string makeRandStr(int sz, bool printable) {
 }
 
 uint64_t makeRandNum() {
-    // 生成一个 64 位的随机整数
+    // Generate a 64-bit random integer
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
@@ -128,7 +128,7 @@ string makeUuidStr() {
     for (int i = 0; i < 4; i++) {
         ret << dist(mt);
     }
-    ret << "-4";  //版本4表示
+    ret << "-4";  //Version 4 means
 
     for (int i = 0; i < 3; i++) {
         ret << dist2(mt);
@@ -418,7 +418,7 @@ static atomic<uint64_t> s_currentMillisecond_system(getCurrentMicrosecondOrigin(
 static inline bool initMillisecondThread() {
     auto running = std::make_shared<bool>(true);
     auto lam = [running]() {
-        // 确该保线程退出前日志打印可用
+        // Ensure that log printing is available before the thread exits
         auto logger = Logger::Instance().shared_from_this();
         setThreadName("stamp thread");
         DebugL << "Stamp thread started";

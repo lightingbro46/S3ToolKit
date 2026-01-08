@@ -372,7 +372,7 @@ ssize_t Socket::send(Buffer::Ptr buf, struct sockaddr *addr, socklen_t addr_len,
         addr_len = SockUtil::get_sock_len(addr);
     } else {
         if (_peer_addr.ss_family != AF_UNSPEC) {
-            // udp connect后不能再sendto指定其他地址
+            // After udp connect, you cannot specify other addresses in sendto.
             return send_l(std::move(buf), false, try_flush);
         }
     }
@@ -905,7 +905,7 @@ std::shared_ptr<void> Socket::cloneSocket(const Socket &other) {
     }
     setSock(sock);
     std::weak_ptr<Socket> weak_self = shared_from_this();
-    // 0x01无实际意义，仅代表成功
+    // 0x01 has no practical meaning and only represents success.
     return std::shared_ptr<void>(reinterpret_cast<void *>(0x01), [weak_self, sock](void *) {
         if (auto strong_self = weak_self.lock()) {
             if (!strong_self->attachEvent(sock)) {

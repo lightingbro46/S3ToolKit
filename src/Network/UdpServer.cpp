@@ -119,7 +119,7 @@ void UdpServer::cloneFrom(const UdpServer &that) {
     if (!that._socket) {
         throw std::invalid_argument("UdpServer::cloneFrom other with null socket");
     }
-    // 将socket的创建回调复制前置, 确保所有的socket都可以通过上层创建
+    // Copy the socket creation callback in front to ensure that all sockets can be created through the upper layer
     _on_create_socket = that._on_create_socket;
     
     setupEvent();
