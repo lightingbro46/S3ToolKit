@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2016 The ZLToolKit project authors. All Rights Reserved.
- *
- * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include <csignal>
+﻿#include <csignal>
 #include <iostream>
 #include "Util/logger.h"
 #include "Util/Byte.hpp"
@@ -63,7 +53,6 @@ protected:
     }
 
     virtual void onError(const SockException &ex) override{
-        //断开连接事件，一般是EOF  [AUTO-TRANSLATED:7359fecf]
         // Disconnected event, usually EOF
         WarnL << ex.what();
     }
@@ -79,13 +68,12 @@ private:
 };
 
 int main() {
-    // 设置日志系统  [AUTO-TRANSLATED:45646031]
     // Set up the logging system
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-    TestClient::Ptr client(new TestClient());//必须使用智能指针
-    client->startConnect("127.0.0.1", 9000);//连接服务器
+    TestClient::Ptr client(new TestClient());//Must use smart pointers
+    client->startConnect("127.0.0.1", 9000);//Connect to the server
     uint32_t tick = 0;
     while (tick <= tick_limit) {
         auto buf = BufferRaw::create(4 * msg_len);
@@ -105,10 +93,9 @@ int main() {
         << "ms";
 
 
-    //退出程序事件处理  [AUTO-TRANSLATED:80065cb7]
     // Exit program event handling
     static semaphore sem;
-    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
+    signal(SIGINT, [](int) { sem.post(); });// Set the exit signal
     sem.wait();
     return 0;
 }

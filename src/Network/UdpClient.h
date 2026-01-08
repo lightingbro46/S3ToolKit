@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2016 The ZLToolKit project authors. All Rights Reserved.
- *
- * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#ifndef NETWORK_UDPCLIENT_H
+﻿#ifndef NETWORK_UDPCLIENT_H
 #define NETWORK_UDPCLIENT_H
 
 #include <memory>
@@ -18,7 +8,7 @@
 
 namespace toolkit {
 
-//Udp客户端，Socket对象默认开始互斥锁
+//Udp client, Socket object starts mutex lock by default
 class UdpClient : public SocketHelper {
 public:
     using Ptr = std::shared_ptr<UdpClient>;
@@ -29,32 +19,32 @@ public:
     ~UdpClient() override;
 
     /**
-     * 开始连接udp服务器
-     * @param peer_host 服务器ip或域名
-     * @param peer_port 服务器端口
-     * @param local_port 本地端口
+     * Start connecting to UDP server
+     * @param peer_host Server IP or domain name
+     * @param peer_port Server port
+     * @param local_port Local port
      */
     virtual void startConnect(const std::string &peer_host, uint16_t peer_port, uint16_t local_port = 0);
 
     /**
-     * 主动断开连接
-     * @param ex 触发onErr事件时的参数
+     * Actively disconnect
+     * @param ex Parameter when triggering onErr event
      */
     void shutdown(const SockException &ex = SockException(Err_shutdown, "self shutdown")) override;
 
     /**
-     * 连接中或已连接返回true，断开连接时返回false
+     * Returns true when connecting or already connected, returns false when disconnected
      */
     virtual bool alive() const;
 
     /**
-     * 设置网卡适配器,使用该网卡与服务器通信
-     * @param local_ip 本地网卡ip
+     * Set network adapter to use for communicating with server
+     * @param local_ip Local network card IP
      */
     virtual void setNetAdapter(const std::string &local_ip);
 
     /**
-     * 唯一标识
+     * Unique identifier
      */
     std::string getIdentifier() const override;
 
@@ -84,7 +74,7 @@ protected:
     }
  
     /**
-     * udp连接成功后每2秒触发一次该事件
+     * This event is triggered every 2 seconds after UDP connection is successful
      */
     void onManager() override {}
 
@@ -92,14 +82,14 @@ private:
     mutable std::string _id;
     std::string _net_adapter = "::";
     std::shared_ptr<Timer> _timer;
-    //对象个数统计
+    //Object count statistics
     ObjectStatistic<UdpClient> _statistic;
 
     OnRecvFrom _on_recvfrom;
     OnErr _on_err;
 };
 
-//用于实现KCP客户端的模板对象
+//Template object for implementing KCP client
 template<typename UdpClientType>
 class UdpClientWithKcp : public UdpClientType {
 public:
@@ -117,7 +107,7 @@ public:
     ~UdpClientWithKcp() override { }
 
     void onRecvFrom(const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) override {
-        //KCP 暂不支持一个UDP Socket 对多个目标,因此先忽略addr参数
+        //KCP temporarily does not support one UDP Socket for multiple targets, so ignore addr parameter for now
         _kcp_box->input(buf);
     }
 
@@ -126,12 +116,12 @@ public:
     }
 
     ssize_t sendto(Buffer::Ptr buf, struct sockaddr *addr = nullptr, socklen_t addr_len = 0) override {
-        //KCP 暂不支持一个UDP Socket 对多个目标,因此先忽略addr参数
+        //KCP temporarily does not support one UDP Socket for multiple targets, so ignore addr parameter for now
         return _kcp_box->send(std::move(buf));
     }
 
     inline void public_onRecv(const Buffer::Ptr &buf) {
-        //KCP 暂不支持一个UDP Socket 对多个目标,因此固定采用bind的地址参数
+        //KCP temporarily does not support one UDP Socket for multiple targets, so always use the address parameter from bind
         UdpClientType::onRecvFrom(buf, (struct sockaddr*)&_peer_addr, _peer_addr_len);
     }
 

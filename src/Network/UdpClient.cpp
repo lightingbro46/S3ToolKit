@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2016 The ZLToolKit project authors. All Rights Reserved.
- *
- * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include "UdpClient.h"
+﻿#include "UdpClient.h"
 
 using namespace std;
 
@@ -19,7 +9,7 @@ StatisticImp(UdpClient)
 UdpClient::UdpClient(const EventPoller::Ptr &poller) : SocketHelper(nullptr) {
     setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
     setOnCreateSocket([](const EventPoller::Ptr &poller) {
-        //TCP客户端默认开启互斥锁
+        // The TCP client turns on the mutex lock by default
         return Socket::createSocket(poller, true);
     });
 }
@@ -48,7 +38,7 @@ void UdpClient::startConnect(const string &peer_host, uint16_t peer_port, uint16
             return;
         }
         if (sock_ptr != strong_self->getSock().get()) {
-            //已经重连socket，上次的socket的事件忽略掉
+            // The socket has been reconnected, and the last socket event is ignored.
             return;
         }
         strong_self->_timer.reset();
@@ -62,7 +52,7 @@ void UdpClient::startConnect(const string &peer_host, uint16_t peer_port, uint16
             return false;
         }
         if (sock_ptr != strong_self->getSock().get()) {
-            //已经重连socket，上传socket的事件忽略掉
+            // The socket has been reconnected, and the event of uploading the socket is ignored.
             return false;
         }
         strong_self->onFlush();
@@ -75,7 +65,7 @@ void UdpClient::startConnect(const string &peer_host, uint16_t peer_port, uint16
             return;
         }
         if (sock_ptr != strong_self->getSock().get()) {
-            //已经重连socket，上传socket的事件忽略掉
+            // The socket has been reconnected, and the event of uploading the socket is ignored.
             return;
         }
         try {
@@ -91,7 +81,7 @@ void UdpClient::startConnect(const string &peer_host, uint16_t peer_port, uint16
     }
     auto peer_addr = SockUtil::make_sockaddr(peer_host.c_str(), peer_port);
 
-    //只能软绑定
+    // Only soft binding
     ret = getSock()->bindPeerAddr((struct sockaddr *)&peer_addr, 0, true);
     if (!ret) {
         WarnL << "UDP output bind peer error";
@@ -106,11 +96,11 @@ void UdpClient::shutdown(const SockException &ex) {
 
 bool UdpClient::alive() const {
     if (_timer) {
-        //连接中或已连接
+        // Connecting or already connected
         return true;
     }
-    //在websocket client(zlmediakit)相关代码中，
-    //_timer一直为空，但是socket fd有效，alive状态也应该返回true
+    // In the websocket client (s3mediakit) related code,
+    // _timer has always been empty, but socket fd is valid, and the alive status should also return true
     auto sock = getSock();
     return sock && sock->alive();
 }

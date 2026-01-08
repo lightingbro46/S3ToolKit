@@ -26,8 +26,8 @@ if(WIN32)
       $ENV{ProgramW6432}/MySQL/*/include
    )
 else(WIN32)
-   #在Mac OS下, mysql.h的文件可能不是在mysql目录下
-   #可能存在/usr/local/mysql/include/mysql.h
+   #Under Mac OS, the mysql.h file may not be in the mysql directory.
+   #/usr/local/mysql/include/mysql.h may exist
    find_path(MYSQL_INCLUDE_DIR mysql.h
       PATHS
       $ENV{MYSQL_INCLUDE_DIR}

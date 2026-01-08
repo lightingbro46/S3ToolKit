@@ -1,20 +1,11 @@
-﻿/*
- * Copyright (c) 2016 The ZLToolKit project authors. All Rights Reserved.
- *
- * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-//模拟丢包率
-//#清空规则
+﻿//Simulated packet loss rate
+//#Clear rules
 //tc qdisc del lo root
-//#设置lo rtt 60ms, 丢包率 30%
+//#Set lo rtt 60ms, packet loss rate 30%
 //tc qdisc add lo root handle 1:htb
 //tc class add dev lo parent 1: classid 1:1 htb rate 1000mbit
 //tc qdisc add dev lo parent 1:1 delay 30ms loss 30%
-//#过滤端口9000
+//#Filter port 9000
 //tc filter add dev lo protocol ip parent 1:0 u32 match ip dport 9000 0xffff flowid 1:1
 
 #include <csignal>
@@ -72,7 +63,6 @@ protected:
     }
 
     virtual void onError(const SockException &ex) override{
-        //断开连接事件，一般是EOF  [AUTO-TRANSLATED:7359fecf]
         // Disconnected event, usually EOF
         WarnL << ex.what();
     }
@@ -88,12 +78,11 @@ private:
 };
 
 int main() {
-    // 设置日志系统  [AUTO-TRANSLATED:45646031]
     // Set up the logging system
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-    UdpClientWithKcp<TestClient>::Ptr client(new UdpClientWithKcp<TestClient>());//必须使用智能指针
+    UdpClientWithKcp<TestClient>::Ptr client(new UdpClientWithKcp<TestClient>());//Must use smart pointers
     client->setInterval(10);
     client->setDelayMode(KcpTransport::DelayMode::DELAY_MODE_NO_DELAY);
     client->setFastResend(2);
@@ -101,7 +90,7 @@ int main() {
     client->setNoCwnd(true);
     // client->setRxMinrto(10);
 
-    client->startConnect("127.0.0.1", 9000);//连接服务器
+    client->startConnect("127.0.0.1", 9000);//Connect to server
     uint32_t tick = 0;
     while (tick <= tick_limit) {
         auto buf = BufferRaw::create(4 * msg_len);
@@ -120,10 +109,9 @@ int main() {
         << "ms, usetime: " << now - clock_time
         << "ms";
 
-    //退出程序事件处理  [AUTO-TRANSLATED:80065cb7]
     // Exit program event handling
     static semaphore sem;
-    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
+    signal(SIGINT, [](int) { sem.post(); });// Set exit signal
     sem.wait();
     return 0;
 }

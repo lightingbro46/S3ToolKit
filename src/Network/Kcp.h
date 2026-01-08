@@ -1,16 +1,4 @@
-﻿/*
- * Copyright (c) 2021 The ZLToolKit project authors. All Rights Reserved.
- *
- * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- *
- * code reference github.com/skywind3000/kcp/releases/tag/1.7.
- */
-
-#ifndef TOOLKIT_NETWORK_KCP_H
+﻿#ifndef TOOLKIT_NETWORK_KCP_H
 #define TOOLKIT_NETWORK_KCP_H
 
 #include "Network/Buffer.h"
@@ -33,14 +21,14 @@ public:
         CMD_WINS = 84,  // cmd: window size (tell)
     };
 
-    uint32_t _conv;     // 会话ID,用于标识一个会话
-    Cmd      _cmd;      // 命令字段,用于标识数据包类型
-    uint8_t  _frg = 0;  // 分片序号,用于消息分片,0表示最后一片
-    uint16_t _wnd;      // 接受窗口大小
-    uint32_t _ts;       // 时间戳,2^32ms,约49.7天会溢出一次
-    uint32_t _sn;       // 序列号
-    uint32_t _una;      // 待接收的第一个未确认包序号
-    uint32_t _len = 0;  // payload部分数据长度(不包含头长度)
+    uint32_t _conv;     // Session ID, used to identify a session
+    Cmd      _cmd;      // Command field, used to identify the type of data packet
+    uint8_t  _frg = 0;  // Fragment number, used for message fragmentation, 0 indicates the last fragment
+    uint16_t _wnd;      // Receive window size
+    uint32_t _ts;       // Timestamp, 2^32ms, about 49.7 days will overflow once
+    uint32_t _sn;       // Sequence number
+    uint32_t _una;      // The first unacknowledged packet sequence number to be received
+    uint32_t _len = 0;  // Length of the payload data (excluding header length)
 
 public:
 
@@ -114,13 +102,13 @@ protected:
     bool loadFromData(const char *data, size_t len);
 
 private:
-    uint32_t _resendts; // 重传超时时间戳,表示该数据包下次重传的时间戳
-    uint32_t _rto;      // 超时重传时间，表示数据包在多长时间没收到ACK就重传,会基于rtt动态调整
-    uint32_t _fastack;  // 快速确认计数器
-    uint32_t _xmit;     // 传输次数,用于统计重传次数
+    uint32_t _resendts; // Retransmission timeout timestamp, indicating the next retransmission time of this packet
+    uint32_t _rto;      // Retransmission timeout, indicating how long the packet will be retransmitted if no ACK is received, dynamically adjusted based on RTT
+    uint32_t _fastack;  // Fast acknowledgment counter
+    uint32_t _xmit;     // Transmission count, used to count retransmissions
 };
 
-//数据包
+// Data packet
 class KcpDataPacket : public KcpPacket {
 public:
     KcpDataPacket(uint32_t conv, size_t payloadSize)
@@ -128,7 +116,7 @@ public:
     }
 };
 
-//ACK包
+// ACK packet
 class KcpAckPacket : public KcpPacket {
 public:
     KcpAckPacket(uint32_t conv) 
@@ -136,7 +124,7 @@ public:
     }
 };
 
-//探测窗口大小包
+// Probe window size packet
 class KcpProbePacket : public KcpPacket {
 public:
     KcpProbePacket(uint32_t conv)
@@ -145,7 +133,7 @@ public:
 
 };
 
-//告知窗口大小包
+// Tell window size packet
 class KcpTellPacket : public KcpPacket {
 public:
     KcpTellPacket(uint32_t conv)
@@ -153,19 +141,19 @@ public:
     }
 };
 
-//可以根据实际需要调整参数
-//参考kcp V.1.7实现由以下推荐模式和参数
-//默认,开启流控: setDelayMode(DELAY_MODE_NORMAL); setInterval(10); setFastResend(0); setNoCwnd(false)
-//普通,关闭流控: setDelayMode(DELAY_MODE_NORMAL); setInterval(10); setFastResend(0); setNoCwnd(true)
-//快速,关闭流控: setDelayMode(DELAY_MODE_NO_DELAY); setInterval(10); setFastResend(1); setNoCwnd(true); setRxMinrto(10)
+//Parameters can be adjusted according to actual needs
+//Reference kcp V.1.7 implementation with the following recommended modes and parameters
+//Default, flow control enabled: setDelayMode(DELAY_MODE_NORMAL); setInterval(10); setFastResend(0); setNoCwnd(false)
+//Normal, flow control disabled: setDelayMode(DELAY_MODE_NORMAL); setInterval(10); setFastResend(0); setNoCwnd(true)
+//Fast, flow control disabled: setDelayMode(DELAY_MODE_NO_DELAY); setInterval(10); setFastResend(1); setNoCwnd(true); setRxMinrto(10)
 class KcpTransport : public std::enable_shared_from_this<KcpTransport> {
 public:
     using Ptr = std::shared_ptr<KcpTransport>;
 
     enum DelayMode {
-        DELAY_MODE_NORMAL   = 0,    // 正常模式, 每次重发rto翻倍,往外增加12.5%的最小rto
-        DELAY_MODE_FAST     = 1,    // 快速模式, 每次重发rto增加当前包rto的一半,不额外增加延时
-        DELAY_MODE_NO_DELAY = 2,    // 极速模式, 每次重发rto增加基础rto的一半,不额外增加延时
+        DELAY_MODE_NORMAL   = 0,    // In normal mode, RTO is doubled every time it is retransmitted, and the minimum RTO is increased by 12.5%.
+        DELAY_MODE_FAST     = 1,    // In fast mode, RTO is increased by half of the current packet's RTO each time it is retransmitted, without additional delay
+        DELAY_MODE_NO_DELAY = 2,    // In no-delay mode, RTO is increased by half of the base RTO each time it is retransmitted, without additional delay
     };
 
     static const uint32_t IKCP_ASK_SEND = 1;            // need to send IKCP_CMD_WASK
@@ -202,10 +190,10 @@ public:
         _poller = poller ? poller : EventPollerPool::Instance().getPoller();
     }
 
-    // 应用层将数据放到发送队列中
+    // The application layer puts data into the send queue
     ssize_t send(const Buffer::Ptr &buf, bool flush = false);
 
-    // 应用层将socket层接收到的数据输入
+    // The application layer inputs the data received by the socket layer
     void input(const Buffer::Ptr &buf);
 
     // change MTU size, default is 1400
@@ -218,24 +206,24 @@ public:
     // set maximum window size: sndwnd=32, rcvwnd=32 by default
     void setWndSize(int sndwnd, int rcvwnd);
 
-    //设置低延时模式
-    //默认DELAY_MODE_NORMAL
+    // Set low delay mode
+    // Default is DELAY_MODE_NORMAL
     void setDelayMode(DelayMode delay_mode);
 
-    //设置快速重传的阈值
-    //默认0,即不会快速重传
+    // Set fast retransmission threshold
+    // Default is 0, meaning no fast retransmission
     void setFastResend(int resend);
 
-    //设置快速重传保守模式
-    //默认保守模式
+    // Set fast retransmission conservative mode
+    // Default is conservative mode
     void setFastackConserve(bool flag);
 
-    //设置是否关闭拥塞控制
-    //默认开启
+    // Set whether to disable congestion control
+    // Default is enabled
     void setNoCwnd(bool flag);
 
-    //设置是否开启流传输模式
-    //默认不开启
+    // Set whether to enable stream mode
+    // Default is disabled
     void setStreamMode(bool flag);
 
 protected:
@@ -261,10 +249,10 @@ protected:
 
     void startTimer();
 
-    //处理收到的数据,rcv_buf中有新数据时调用
+    // Process received data, called when there is new data in rcv_buf
     void onData();
 
-    //测量rcv_queue 下一个可以提取的包的长度
+    // Measure the length of the next packet that can be extracted from rcv_queue
     int peeksize();
 
     void handleAnyPacket(KcpPacket::Ptr packet);
@@ -274,10 +262,10 @@ protected:
     // move available data from rcv_buf -> rcv_queue
     void sortRecvBuf();
     void sortSendQueue();
-    //流模式,合并发送包
+    // In stream mode, merge send packets
     size_t mergeSendQueue(const char *buffer, size_t len);
 
-    // 将发送队列的数据真正发送出去
+    // Actually send the data in the send queue
     void update();
     void sendSendQueue();
     void sendAckList();
@@ -285,27 +273,27 @@ protected:
     void sendPacket(KcpPacket::Ptr pkt, bool flush = false);
     void flushPool();
 
-    //将发送缓存中对端已经确认的数据包丢弃
-    //UNA模式,指定序列之前的包都已经确认,可以Drop
+    // Discard packets in the send cache that have been acknowledged by the peer
+    // In UNA mode, all packets before the specified sequence number have been acknowledged and can be dropped
     void dropCacheByUna(uint32_t una);
 
-    //将发送缓存中对端已经确认的数据包丢弃
-    //ACK模式,仅指定序列的包被确认
+    // Discard packets in the send cache that have been acknowledged by the peer
+    // In ACK mode, only the packet with the specified sequence number is acknowledged
     void dropCacheByAck(uint32_t sn);
 
-    //更新rtt
+    // Update RTT
     void updateRtt(int32_t rtt);
 
-    //更新发送cache中packet的Faskack计数
+    // Update the Fastack count of packets in the send cache
     void updateFastAck(uint32_t sn, uint32_t ts);
 
-    //扩大拥塞窗口
+    // Increase congestion window
     void increaseCwnd();
 
-    //缩小拥塞窗口
+    // Decrease congestion window
     void decreaseCwnd(bool change, bool lost);
 
-    // get how many packet is waiting to be sent
+    // Get how many packets are waiting to be sent
     int getWaitSnd();
 
     int getRcvWndUnused();
@@ -320,65 +308,61 @@ private:
 
     EventPoller::Ptr _poller = nullptr;
     Timer::Ptr _timer;
-    //刷新计时器
+    // Refresh timer
     Ticker _alive_ticker;
 
-    bool _fastack_conserve = false;  //快速重传保守模式
+    bool _fastack_conserve = false;  // Fast retransmission conservative mode
 
-    uint32_t _conv;    // 会话ID,用于标识一个会话
-    uint32_t _mtu  = IKCP_MTU_DEF;     // 最大传输单元,默认1400
-    uint32_t _mss  = IKCP_MTU_DEF - KcpPacket::HEADER_SIZE;     // 最大分片大小,由MTU计算得到
+    uint32_t _conv;    // Conversation ID, used to identify a session
+    uint32_t _mtu  = IKCP_MTU_DEF;     // Maximum Transmission Unit, default 1400
+    uint32_t _mss  = IKCP_MTU_DEF - KcpPacket::HEADER_SIZE;     // Maximum segment size, calculated from MTU
 
-    uint32_t _interval = IKCP_INTERVAL;  //内部flush的率先哪个间隔
+    uint32_t _interval = IKCP_INTERVAL;  // Internal flush interval
 
-    uint32_t _fastresend = 0;  //快速重传触发阈值,当packet的_fastack超过该值时,触发快速重传
-    int _fastlimit = 5;   //快速重传限制，限制触发快速重传的最大次数,防止过度重传
+    uint32_t _fastresend = 0;  // Fast retransmission trigger threshold, when a packet's _fastack exceeds this value, fast retransmission is triggered
+    int _fastlimit = 5;   // Fast retransmission limit, limits the maximum number of times fast retransmission is triggered to prevent excessive retransmission
 
-    uint32_t _xmit = 0;      //重传次数计数器
-    uint32_t _dead_link = 20; //最大重传次数,当某个包的重传次数超过该值时，认为链路断开
+    uint32_t _xmit = 0;      // Retransmission count
+    uint32_t _dead_link = 20; // Maximum retransmission count, when a packet's retransmission count exceeds this value, the link is considered broken
+    uint32_t _snd_una = 0; // First unacknowledged packet sequence number in the send buffer
+    uint32_t _snd_nxt = 0; // Next sequence number to be assigned
+    uint32_t _rcv_nxt = 0; // Next packet sequence number to be received in the receive queue
 
-    uint32_t _snd_una = 0; //发送缓冲区中第一个未确认的包序号
-    uint32_t _snd_nxt = 0; //下一个待分配的序号
-    uint32_t _rcv_nxt = 0; //接收队列中待接收的下一个包序号
+    uint32_t _ts_recent = 0; // Timestamp of the most recent received packet
+    uint32_t _ts_lastack = 0;// Timestamp of the most recent sent ACK
 
-    uint32_t _ts_recent = 0; //最近一次收到数据包的时间戳
-    uint32_t _ts_lastack = 0;//最近一次发送ACK的时间戳
+    // RTT
+    int32_t _rx_rto = IKCP_RTO_DEF; // Retransmission timeout (dynamically adjusted based on RTT and RTT variance)
+    int32_t _rx_minrto = IKCP_RTO_MIN; // Minimum retransmission timeout to prevent RTO from being too small
 
-    //rtt
-    int32_t _rx_rttval = 0;  //RTT方差
-    int32_t _rx_srtt = 0;    //RTT(平滑后)
-    int32_t _rx_rto = IKCP_RTO_DEF; //重传超时时间(会基于rtt和rtt方差动态调整)
-    int32_t _rx_minrto = IKCP_RTO_MIN; //最小重传超时时间,防止RTO过小
-
-    //for 拥塞窗口控制
-    uint32_t _snd_wnd = IKCP_WND_SND; //发送队列窗口,用于限制发送速率,用户配置(单位分片数量)
-    uint32_t _rcv_wnd = IKCP_WND_RCV; //接收队列窗口,用于限制接收速率,用户配置(单位分片数量)
-    uint32_t _rmt_wnd = IKCP_WND_RCV; //对端接收缓存拥塞窗口,对端通告(单位分片数量)
-    uint32_t _cwnd = 1;  //发送缓存拥塞窗口大小,算法动态调整(单位分片数量)
-    uint32_t _incr = 0;  //拥塞窗口增量,用于拥塞控制算法中动态窗口大小(单位字节)
-    uint32_t _ssthresh = IKCP_THRESH_INIT;  //慢启动阈值
-
-    uint32_t _probe = 0;   //探测标志,用于探测对端窗口大小
-    uint32_t _ts_probe = 0; //探测时间戳,记录发送窗口探测包的时间戳
-    uint32_t _probe_wait = 0;//探测等待时间, 控制探测包发送的时间间隔
+    // For congestion window control
+    uint32_t _snd_wnd = IKCP_WND_SND; // Send queue window, used to limit send rate, user-configured (in segments)
+    uint32_t _rcv_wnd = IKCP_WND_RCV; // Receive queue window, used to limit receive rate, user-configured (in segments)
+    uint32_t _rmt_wnd = IKCP_WND_RCV; // Remote receive buffer congestion window, announced by the remote (in segments)
+    uint32_t _cwnd = 1;  // Send buffer congestion window size, dynamically adjusted by algorithm (in segments)
+    uint32_t _incr = 0;  // Congestion window increment, used for dynamic window size in congestion control algorithm (in bytes)
+    uint32_t _ssthresh = IKCP_THRESH_INIT;  // Slow start threshold
+    uint32_t _probe = 0;   // Probe flag, used to probe the remote window size
+    uint32_t _ts_probe = 0; // Probe timestamp, records the time when the probe packet was sent
+    uint32_t _probe_wait = 0;// Probe wait time, controls the interval between probe packet transmissions
 
     DelayMode _delay_mode = DELAY_MODE_NORMAL;
-    int _nocwnd = false; //是否禁用拥塞控制
-    bool _stream = false; //是否开启流传输模式
+    int _nocwnd = false; // Whether to disable congestion control
+    bool _stream = false; // Whether to enable stream transmission mode
 
-    //传输链路: userdata->_snd_queue->_snd_buf->网络发送
-    //_snd_queue:无限制
+    // Transmission link: userdata->_snd_queue->_snd_buf->network send
+    //_snd_queue: unlimited
     //_snd_buf: min(_snd_wnd, _rmt_wnd, _cwnd)
-    //传输链路: 网络接收->_rcv_buf->_snd_queue->userdata
-    //_rcv_buf:无限制,乱序数据暂存
+    // Transmission link: network receive->_rcv_buf->_snd_queue->userdata
+    //_rcv_buf: unlimited, stores out-of-order data temporarily
     //_snd_queue: _rcv_wnd
-    std::list<KcpDataPacket::Ptr> _snd_queue; //发送队列,还未进入发送窗口
-    std::list<KcpDataPacket::Ptr> _rcv_queue; //接收队列,已经接收完全的包等待交给应用层
-    std::list<KcpDataPacket::Ptr> _snd_buf;   //发送缓存,已经进入发送窗口,用于重传
-    std::list<KcpDataPacket::Ptr> _rcv_buf;   //接收缓存,已经接受，但是因为乱序丢包等还不能交给应用层
-    //待发送的ACK列表
+    std::list<KcpDataPacket::Ptr> _snd_queue; // Send queue, packets not yet in the send window
+    std::list<KcpDataPacket::Ptr> _rcv_queue; // Receive queue, fully received packets waiting to be delivered to the application layer
+    std::list<KcpDataPacket::Ptr> _snd_buf;   // Send buffer, packets already in the send window, used for retransmission
+    std::list<KcpDataPacket::Ptr> _rcv_buf;   // Receive buffer, packets already received but not yet deliverable to the application layer due to out-of-order or packet loss
+    // List of ACKs to be sent
     std::deque<std::pair<uint32_t /*sn*/, uint32_t /*ts*/>>_acklist;
-    BufferRaw::Ptr _buffer_pool;  //用于合并多个kcp包到一个udp包中
+    BufferRaw::Ptr _buffer_pool;  // Used to merge multiple KCP packets into one UDP packet
 };
 } // namespace toolkit
 

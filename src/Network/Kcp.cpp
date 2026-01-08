@@ -1,14 +1,4 @@
-﻿/*
- * Copyright (c) 2021 The ZLToolKit project authors. All Rights Reserved.
- *
- * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
- *
- * Use of this source code is governed by MIT license that can be found in the
- * LICENSE file in the root of the source tree. All contributing project authors
- * may be found in the AUTHORS file in the root of the source tree.
- */
-
-#include "Kcp.h"
+﻿#include "Kcp.h"
 #include "Util/Byte.hpp"
 
 using namespace std;
@@ -127,7 +117,7 @@ bool KcpPacket::storeToData() {
 KcpTransport::KcpTransport(bool server_mode) {
     _server_mode = server_mode;
     if (!server_mode) {
-        //客户端 conv 随机生成
+        // Client-side conv is randomly generated
         _conv = makeRandNum();
         _conv_init = true;
     }
@@ -160,7 +150,7 @@ ssize_t KcpTransport::send(const Buffer::Ptr& buf, bool flush) {
 
     if (size >= _mss * IKCP_WND_RCV) {
         WarnL << "size : "<< size << "over size, send fail";
-        //分片过大,拒绝发送
+        // The fragment is too large and refuses to be sent.
         return -1;
     }
 
@@ -255,7 +245,7 @@ void KcpTransport::input(const Buffer::Ptr& buf) {
                     } else {
                         if (sn > maxack) {
                             if (!_fastack_conserve || ts > latest_ts) {
-                                //激进模式
+                                //Aggressive mode
                                 maxack = sn;
                                 latest_ts = ts;
                             }
@@ -283,7 +273,7 @@ void KcpTransport::input(const Buffer::Ptr& buf) {
         }
 
         if (_snd_una > prev_una) {
-            //有新的应答,尝试增大拥塞窗口
+            //There is a new response, try to increase the congestion window
             increaseCwnd();
         }
 
@@ -320,7 +310,7 @@ void KcpTransport::onData() {
     sortRecvBuf();
 
     if (_rcv_queue.size() >= _rcv_wnd) {
-        //接受队列当前超过接收窗口大小
+        //The receive queue currently exceeds the receive window size
         fastRecover = true;
     }
 
@@ -356,7 +346,7 @@ int KcpTransport::peeksize() {
         return 0;
     }
 
-    //分包数据还没发送完全
+    //The subpackaged data has not been completely sent yet
     if (_rcv_queue.size() < _rcv_queue.front()->getFrg() + 1) {
         return 0;
     }
@@ -376,9 +366,9 @@ int KcpTransport::peeksize() {
 // move available data from rcv_buf -> rcv_queue
 void KcpTransport::sortRecvBuf() {
 #if 0
-    //直送应用层,不考虑接受队列满的情况
+    //Directly sent to the application layer, regardless of the situation when the receiving queue is full
     if (_rcv_queue.size() >= _rcv_wnd) {
-        //接收队列满
+        //Receive queue full
         return;
     }
 #endif
@@ -386,8 +376,8 @@ void KcpTransport::sortRecvBuf() {
     while (!_rcv_buf.empty()) {
         auto packet = _rcv_buf.front();
         if (packet->getSn() == _rcv_nxt) {
-            //接收缓存中序号正确,且接受队列窗口足够
-            //将接收缓存中的包转到接受队列中
+            //The sequence number in the receive buffer is correct, and the receive queue window is sufficient
+            //Move the packet from the receive buffer to the receive queue
             _rcv_buf.pop_front();
             _rcv_queue.push_back(packet);
             _rcv_nxt++;
@@ -442,12 +432,12 @@ size_t KcpTransport::mergeSendQueue(const char *buffer, size_t len) {
         return 0;
     }
 
-    // 流发送模式,表示可以将当前buffer合并之前的包后面
+    // Stream sending mode, indicating that the current buffer can be merged behind the previous packet
     if (!_stream) {
         return 0;
     }
 
-    //发送队列没有数据,不用合并
+    // The send queue has no data, no need to merge
     if (_snd_queue.empty()) {
         return 0;
     }
@@ -455,7 +445,7 @@ size_t KcpTransport::mergeSendQueue(const char *buffer, size_t len) {
     auto packet = _snd_queue.front();
     size_t oldLen = packet->getLen();
     if (oldLen >= _mss) {
-        //前一个包已经达到_mss长度,不允许合并
+        // The previous packet has reached the _mss length, merging is not allowed
         return 0;
     }
 
@@ -473,7 +463,7 @@ void KcpTransport::updateRtt(int32_t rtt) {
     }
 
     int32_t rto = 0;
-    //Jacobson/Karels RTT估算算法
+    //Jacobson/Karels RTT estimation algorithm
     if (_rx_srtt == 0) {
         _rx_srtt = rtt;
         _rx_rttval = rtt / 2;
@@ -553,11 +543,11 @@ void KcpTransport::increaseCwnd() {
 
     uint32_t mss = _mss;
     if (_cwnd < _ssthresh) {
-        //慢启动阶段,拥塞窗口指数增长
+        // Slow start phase, congestion window exponential growth
         _cwnd++;
         _incr += mss;
     } else {
-        //拥塞避免阶段,拥塞窗口线性增长
+        // Congestion avoidance phase, congestion window linear growth
         if (_incr < mss) {
             _incr = mss;
         }
@@ -572,7 +562,7 @@ void KcpTransport::increaseCwnd() {
         }
     }
 
-    //控制不超过远端窗口大小
+    // Control not to exceed the remote window size
     if (_cwnd > _rmt_wnd) {
         _cwnd = _rmt_wnd;
         _incr = _rmt_wnd * mss;
@@ -599,7 +589,7 @@ void KcpTransport::handleCmdPush(KcpPacket::Ptr packet) {
 
     if (sn >= _rcv_nxt + _rcv_wnd) {
         // TraceL << "sn: " << sn << " is over wnd, _rcv_nxt: " << _rcv_nxt << ":, skip";
-        //超出接受窗口数据
+        // Data outside the acceptance window
         return;
     }
 
@@ -627,7 +617,7 @@ void KcpTransport::handleCmdPush(KcpPacket::Ptr packet) {
     return;
 }
 
-//获取当前空闲接受队列窗口
+// Get the current free receive queue window
 int KcpTransport::getRcvWndUnused() {
     auto wnd = _rcv_wnd - _rcv_queue.size();
     if (wnd > 0) {
@@ -662,7 +652,7 @@ void KcpTransport::sendSendQueue() {
 
         auto packet = *it;
         auto xmit = packet->getXmit();
-        //没重传过,第一次发送数据包
+        // Not retransmitted, first time sending data packet
         if (xmit == 0) {
             // TraceL << "normal send sn: " << packet->getSn();
             needsend = true;
@@ -670,7 +660,7 @@ void KcpTransport::sendSendQueue() {
             packet->setRto(_rx_rto);
             packet->setResendts(current + _rx_rto + rtomin);
         } else if (current >= packet->getResendts()) {
-            //普通重传
+            // Normal retransmission
             // TraceL << "resend sn: " << packet->getSn() << ", xmit: " << packet->getXmit();
             needsend = true;
             packet->setXmit(xmit + 1);
@@ -685,7 +675,7 @@ void KcpTransport::sendSendQueue() {
             packet->setResendts(current + rto);
             lost = true;
         } else if (packet->getFastack() >= resent) {
-            //快速重传
+            // Fast retransmission
             if ((int)xmit <= _fastlimit || _fastlimit <= 0) {
                 // TraceL << "fast resend sn: " << packet->getSn() << ", xmit: " << packet->getXmit();
                 auto rto = packet->getRto();
@@ -781,7 +771,7 @@ int KcpTransport::getWaitSnd() {
 
 // update ssthresh
 void KcpTransport::decreaseCwnd(bool change, bool lost) {
-    //处理因为快速重传或者丢包的情况下,进行拥塞窗口处理
+    // Handle congestion window processing due to fast retransmission or packet loss
 
     uint32_t resent = (_fastresend > 0)? (uint32_t)_fastresend : 0xffffffff;
 
@@ -791,10 +781,10 @@ void KcpTransport::decreaseCwnd(bool change, bool lost) {
         cwnd = _imin_(_cwnd, cwnd);
     }
 
-    //快速重传表明网络出现轻微拥塞，采用相对温和的调整策略。
-    //主动降低发送速率,但不是因为实际的丢包(可能是乱序)
+    // Fast retransmission indicates mild network congestion, adopting a relatively gentle adjustment strategy.
+    // Actively reduce the sending rate, but not due to actual packet loss (possibly out of order)
     if (change) {
-        //调整慢启动阈值为在途数据量的一半
+        // Adjust the slow start threshold to half of the in-flight data
         uint32_t inflight = _snd_nxt - _snd_una;
         _ssthresh = inflight / 2;
         if (_ssthresh < IKCP_THRESH_MIN) {
@@ -804,13 +794,13 @@ void KcpTransport::decreaseCwnd(bool change, bool lost) {
         _incr = _cwnd * _mss;
     }
 
-    //超时重传表明网络严重拥塞，采用激进的调整策略。
+    // Timeout retransmission indicates severe network congestion, adopting an aggressive adjustment strategy.
     if (lost) {
         _ssthresh = cwnd / 2;
         if (_ssthresh < IKCP_THRESH_MIN) {
             _ssthresh = IKCP_THRESH_MIN;
         }
-        //重置拥塞窗口,回到慢启动阶段
+        // Reset congestion window, return to slow start phase
         _cwnd = 1;
         _incr = _mss;
     }
