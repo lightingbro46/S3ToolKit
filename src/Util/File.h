@@ -140,5 +140,200 @@ private:
     ~File();
 };
 
+class FileIOInterface;
+class FileWriter {
+public:
+    FileWriter(std::shared_ptr<FileIOInterface> io) : _io(std::move(io)) {}
+    ~FileWriter() = default;
+
+public:
+    /**
+     * Write data to file
+     * @param buffer Buffer containing the data to write
+     * @param size Size of each data unit
+     * @return 0 on success, non-zero on failure
+     */
+    int write(const void *buffer, size_t size);
+
+    /**
+     * Move the file pointer to a specified location
+     * @param offset Offset from the specified origin
+     * @param origin Position used as reference for the offset (SEEK_SET, SEEK_CUR, SEEK_END)
+     * @return 0 on success, non-zero on failure
+     */
+    int seek(int64_t offset, int origin);
+
+    /**
+     * Get the current position of the file pointer
+     * @return Current position of the file pointer, or -1 on failure
+     */
+    int64_t tell();
+
+    /**
+     * Flush the file buffer, ensuring that all buffered data is written to the file
+     */
+    int flush();
+
+private:
+    std::shared_ptr<FileIOInterface> _io;
+};
+
+class FileReader {
+public:
+    FileReader(std::shared_ptr<FileIOInterface> io) : _io(std::move(io)) {}
+    ~FileReader() = default;
+
+public:
+    /**
+     * Read data from file
+     * @param buffer Buffer to store the read data
+     * @param size Size of each data unit
+     * @return The number of data units successfully read
+     */
+    int read(void *buffer, size_t size);
+
+    /**
+     * Move the file pointer to a specified location
+     * @param offset Offset from the specified origin
+     * @param origin Position used as reference for the offset (SEEK_SET, SEEK_CUR, SEEK_END)
+     * @return 0 on success, non-zero on failure
+     */
+    int seek(int64_t offset, int origin);
+
+    /**
+     * Get the current position of the file pointer
+     * @return Current position of the file pointer, or -1 on failure
+     */
+    int64_t tell();
+
+private:
+    std::shared_ptr<FileIOInterface> _io;
+};
+
+/**
+ * Abstract interface class for base file IO operations, which can be implemented by different file IO classes (e.g., FileReader, FileWriter)
+ * to provide a unified interface for file operations.
+ */
+class FileIOInterface : public std::enable_shared_from_this<FileIOInterface> {
+public:
+    using Ptr = std::shared_ptr<FileIOInterface>;
+    using Writer = std::shared_ptr<FileWriter>;
+    using Reader = std::shared_ptr<FileReader>;
+
+    virtual ~FileIOInterface() = default;
+
+    /**
+     * Create a writer object for this file IO interface
+     * @return A shared pointer to the created FileWriter object
+     */
+    virtual Writer createWriter();
+    
+    /**
+     * Create a reader object for this file IO interface
+     * @return A shared pointer to the created FileReader object
+     */
+    virtual Reader createReader();
+    
+    /**
+     * Read a certain amount of data from the file
+     * @param buffer Buffer to store the read data
+     * @param size Size of each data unit
+     * @return 0 on success, non-zero on failure
+     */
+    virtual int onRead(void *buffer, size_t size) = 0;
+
+    /**
+     * Write a certain amount of data to the file
+     * @param buffer Buffer containing the data to write
+     * @param size Size of each data unit
+     * @return 0 on success, non-zero on failure
+     */
+    virtual int onWrite(const void *buffer, size_t size) = 0;
+
+    /**
+     * Move the file pointer to a specified location
+     * @param offset Offset from the specified origin
+     * @param origin Position used as reference for the offset (SEEK_SET, SEEK_CUR, SEEK_END)
+     * @return 0 on success, non-zero on failure
+     */
+    virtual int onSeek(int64_t offset, int origin) = 0;
+
+    /**
+     * Get the current position of the file pointer
+     * @return Current position of the file pointer, or -1 on failure
+     */
+    virtual int64_t onTell() = 0;
+
+    /**
+     * Flush a certain amount of data to the file
+     * @return 0 on success, non-zero on failure
+     */
+    virtual int onFlush() { return 0; }
+};
+
+/**
+ * File disk IO utility class, providing common file operations such as creating files, deleting files, reading and writing files, etc.
+ * It also defines the FileIOInterface interface for file IO operations, which can be implemented by different file IO classes (e.g., FileReader, FileWriter) to provide a unified interface for file operations.
+ */
+class FileDisk : public FileIOInterface {
+public:
+    using Ptr = std::shared_ptr<FileDisk>;
+
+    /**
+     * Open a file with the specified path and mode
+     * @param path The path of the file to open
+     * @param mode The mode to open the file (e.g., "rb" for read binary, "wb" for write binary)
+     */
+    void openFile(const std::string &path, const std::string &mode, uint32_t buf_size = 64 * 1024);
+
+    /**
+     * Close the currently opened file
+     */
+    void closeFile();
+
+protected:
+    int onRead(void *buffer, size_t size) override;
+    int onWrite(const void *buffer, size_t size) override;
+    int onSeek(int64_t offset, int origin) override;
+    int64_t onTell() override;
+    int onFlush() override;
+
+private:
+    std::shared_ptr<FILE> _file;
+};
+
+class FileMemory : public FileIOInterface {
+public:
+    using Ptr = std::shared_ptr<FileMemory>;
+
+    /**
+     * Open a memory buffer as a file
+     * @param buf The memory buffer to open, default is an empty string
+     */
+    FileMemory(const std::string &buf = "");
+
+    /**
+     * Get the content of the memory buffer
+     * @return The content of the memory buffer as a string
+     */
+    std::string getBuffer() const { return _memory; }
+
+    /**
+     * Get file size
+     */
+    size_t fileSize() const;
+
+protected:
+    int onRead(void *buffer, size_t size) override;
+    int onWrite(const void *buffer, size_t size) override;
+    int onSeek(int64_t offset, int origin) override;
+    int64_t onTell() override;
+    int onFlush() override;
+
+private:
+    size_t _offset = 0;
+    std::string _memory;
+};
+
 } /* namespace toolkit */
 #endif /* SRC_UTIL_FILE_H_ */

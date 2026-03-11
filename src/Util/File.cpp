@@ -352,4 +352,178 @@ void File::deleteEmptyDir(const std::string &dir, bool backtrace) {
     }
 }
 
+///////////////////////////////////FileWriter///////////////////////////////////////////
+
+int FileWriter::write(const void *buffer, size_t size) {
+    return _io->onWrite(buffer, size);
+}
+
+int FileWriter::seek(int64_t offset, int origin) {
+    return _io->onSeek(offset, origin);
+}
+
+int64_t FileWriter::tell() {
+    return _io->onTell();
+}
+
+int FileWriter::flush() {
+    return _io->onFlush();
+}
+
+/////////////////////////////////FileReader///////////////////////////////////////////
+
+int FileReader::read(void *buffer, size_t size) {
+    return _io->onRead(buffer, size);
+}
+
+int FileReader::seek(int64_t offset, int origin) {
+    return _io->onSeek(offset, origin);
+}
+
+int64_t FileReader::tell() {
+    return _io->onTell();
+}
+
+/////////////////////////////////FileIOInterface/////////////////////////////////////
+
+FileIOInterface::Writer FileIOInterface::createWriter() {
+    Ptr self = shared_from_this();
+    // Save a strong reference to itself to prevent premature release
+    Writer writer = std::make_shared<FileWriter>(self);
+    if (!writer) {
+        throw std::runtime_error("Failed to write to file IO interface!");
+    }
+    return writer;
+}
+
+FileIOInterface::Reader FileIOInterface::createReader() {
+    Ptr self = shared_from_this();
+    // Save a strong reference to itself to prevent premature release
+    Reader reader = std::make_shared<FileReader>(self);
+    if (!reader) {
+        throw std::runtime_error("Failed to read to file IO interface!");
+    }
+    return reader;
+}
+
+///////////////////////////////////FileDisk///////////////////////////////////////////
+
+void FileDisk::openFile(const std::string &path, const std::string &mode, uint32_t buf_size) {
+    // Create a file
+    auto fp = File::create_file(path, mode);
+    if(!fp){
+        throw std::runtime_error(string("Failed to open the file:") + path);
+    }
+
+    // Create a new file io cache
+    std::shared_ptr<char> file_buf(new char[buf_size],[](char *ptr){
+        if(ptr){
+            delete [] ptr;
+        }
+    });
+
+    if (file_buf) {
+        // Set the file buffer
+        setvbuf(fp, file_buf.get(), _IOFBF, buf_size);
+    }
+
+    // Create smart pointer to manage the file handle
+    _file.reset(fp, [file_buf](FILE *fp) {
+        fflush(fp);
+        fclose(fp);
+    });
+}
+
+void FileDisk::closeFile() {
+    _file.reset();
+}
+
+int FileDisk::onRead(void *buffer, size_t size) {
+    if (size == fread(buffer, 1, size, _file.get())) {
+        return 0;
+    }
+    return 0 != ferror(_file.get()) ? ferror(_file.get()) : -1 /*EOF*/;
+}
+
+int FileDisk::onWrite(const void *buffer, size_t size) {
+    return size == fwrite(buffer, 1, size, _file.get()) ? 0 : ferror(_file.get());
+}
+
+int FileDisk::onSeek(int64_t offset, int origin) {
+    return fseek64(_file.get(), offset, origin);
+}
+
+int64_t FileDisk::onTell() {
+    return ftell64(_file.get());
+}
+
+int FileDisk::onFlush() {
+    return fflush(_file.get());
+}
+
+////////////////////////////////FileMemory///////////////////////////////////////////
+
+FileMemory::FileMemory(const std::string &buf) : _memory(buf) {
+    _offset = 0;
+}
+
+size_t FileMemory::fileSize() const {
+    return _memory.size();
+}
+
+int64_t FileMemory::onTell() {
+    return _offset;
+}
+
+int FileMemory::onRead(void *buffer, size_t size) {
+    if (_offset >= _memory.size()) {
+        return -1; // EOF
+    }
+    size_t read_size = std::min(size, _memory.size() - _offset);
+    memcpy(buffer, _memory.data() + _offset, read_size);
+    _offset += read_size;
+    return 0;
+}
+
+int FileMemory::onWrite(const void *buffer, size_t size) {
+    if (_offset > _memory.size()) {
+        // If the offset is beyond the current memory size, fill the gap with zeros
+        _memory.resize(_offset, '\0');
+    }
+    if (_offset + size > _memory.size()) {
+        // If writing beyond the current memory size, resize the memory
+        _memory.resize(_offset + size);
+    }
+    memcpy(&_memory[_offset], buffer, size);
+    _offset += size;
+    return 0;
+}
+
+int FileMemory::onSeek(int64_t offset, int origin) {
+    int64_t new_offset = 0;
+    switch (origin) {
+        case SEEK_SET:
+            new_offset = offset;
+            break;
+        case SEEK_CUR:
+            new_offset = _offset + offset;
+            break;
+        case SEEK_END:
+            new_offset = _memory.size() + offset;
+            break;
+        default:
+            return -1; // Invalid origin
+    }
+    if (new_offset < 0) {
+        return -1; // Invalid offset
+    }
+    _offset = static_cast<size_t>(new_offset);
+    return 0;
+}
+
+int FileMemory::onFlush() {
+    // No-op for memory file
+    return 0;
+}
+
 } /* namespace toolkit */
