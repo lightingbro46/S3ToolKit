@@ -73,6 +73,30 @@ public:
     virtual uint32_t crc() const = 0;
 
     virtual void serialize(BlockBuffer &buffer) const = 0;
+
+    /**
+     * Size of the extension header in bytes (data between BlockHeader and payload on disk).
+     * Equals headerSize() - sizeof(BlockHeader).
+     */
+    uint16_t extHeaderSize() const {
+        return static_cast<uint16_t>(headerSize() - sizeof(BlockHeader));
+    }
+
+    /**
+     * Build the on-disk BlockHeader for this block.
+     * payload_size reflects only the pure payload (ext header is excluded).
+     * Total on-disk block size = header_size + payload_size.
+     */
+    BlockHeader buildBaseHeader() const {
+        BlockHeader hdr{};
+        hdr.magic        = magic();
+        hdr.type         = type();
+        hdr.header_size  = static_cast<uint16_t>(headerSize());
+        hdr.payload_size = payloadSize();
+        hdr.stamp        = stamp();
+        hdr.crc          = crc();
+        return hdr;
+    }
 };
 
 } /* namespace toolkit */

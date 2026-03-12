@@ -72,6 +72,27 @@ public:
     }
 
     /**
+     * Write a block and atomically record its offset + stamp in the index.
+     * ext_header = bytes immediately after BlockHeader on disk (the extension header).
+     * payload    = pure payload bytes (ext header excluded).
+     * @param flush_after Flush block file after writing (default false)
+     * @return true if block written and index entry added
+     */
+    bool appendBlock(const BlockHeader &header,
+                     const uint8_t *ext_header, uint16_t ext_size,
+                     const uint8_t *payload, uint32_t payloadSize,
+                     bool flush_after = false) {
+        IndexEntry entry;
+        entry.offset = _writer.position();
+        entry.stamp  = header.stamp;
+
+        if (!_writer.appendBlock(header, ext_header, ext_size, payload, payloadSize, flush_after)) {
+            return false;
+        }
+        return _index.addEntry(entry);
+    }
+
+    /**
      * Retrieve a stored index entry by position.
      */
     bool getIndexEntry(size_t i, IndexEntry &entry) const {
