@@ -121,6 +121,17 @@ class BlockReaderInterface {
 public:
     virtual ~BlockReaderInterface() = default;
 
+    virtual bool seek(uint64_t offset) {
+        if (!_reader) {
+            _reader = createReader();
+        }
+        if (_reader->seek(static_cast<int64_t>(offset), SEEK_SET) != 0) {
+            return false;
+        }
+        _offset = offset;
+        return true;
+    }
+
     virtual bool readBlock(BlockHeader& header, std::vector<uint8_t>& payload, bool &eof) {
         eof = false;
         if (!_reader) {

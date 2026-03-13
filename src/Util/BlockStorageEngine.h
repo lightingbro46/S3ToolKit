@@ -7,23 +7,27 @@
 namespace toolkit {
 
 /**
- * Combines FileBlockWriter and TypedMMapFileIndex<IndexEntry> to provide
+ * Combines FileBlockWriter and TypedMMapFileIndex<Entry> to provide
  * automatic index tracking when writing blocks. Each appendBlock call
  * records the block's file offset and timestamp in the mmap'd index,
  * ensuring the block file and index are always in sync.
  *
+ * Entry must have at least 'stamp' (uint64_t) and 'offset' (uint64_t) fields.
+ * Defaults to toolkit::IndexEntry; pass a custom type to extend the index.
+ *
  * Usage:
- *   BlockStorageEngine engine;
- *   engine.open("data.blk", "data.idx");
- *   engine.appendBlock(header, payload, size);
- *   engine.close();
+ *   BlockStorageWriter<> writer;
+ *   writer.open("data.blk", "data.idx");
+ *   writer.appendBlock(header, ext_header, ext_size, payload, size);
+ *   writer.close();
  */
-class BlockStorageEngine {
+template<typename Entry = IndexEntry>
+class BlockStorageWriter {
 public:
-    explicit BlockStorageEngine(size_t index_grow = 1024)
+    explicit BlockStorageWriter(size_t index_grow = 1024)
         : _index(index_grow) {}
 
-    ~BlockStorageEngine() {
+    ~BlockStorageWriter() {
         close();
     }
 
@@ -61,7 +65,7 @@ public:
      */
     bool appendBlock(const BlockHeader &header, const uint8_t *payload,
                      uint32_t payloadSize, bool flush_after = false) {
-        IndexEntry entry;
+        Entry entry{};
         entry.offset = _writer.position();
         entry.stamp  = header.stamp;
 
@@ -82,7 +86,7 @@ public:
                      const uint8_t *ext_header, uint16_t ext_size,
                      const uint8_t *payload, uint32_t payloadSize,
                      bool flush_after = false) {
-        IndexEntry entry;
+        Entry entry{};
         entry.offset = _writer.position();
         entry.stamp  = header.stamp;
 
@@ -95,7 +99,7 @@ public:
     /**
      * Retrieve a stored index entry by position.
      */
-    bool getIndexEntry(size_t i, IndexEntry &entry) const {
+    bool getIndexEntry(size_t i, Entry &entry) const {
         return _index.getEntry(i, entry);
     }
 
@@ -108,12 +112,102 @@ public:
     }
 
     // Direct access for advanced use cases
-    FileBlockWriter              &writer() { return _writer; }
-    TypedMMapFileIndex<IndexEntry> &index()  { return _index;  }
+    FileBlockWriter            &writer() { return _writer; }
+    TypedMMapFileIndex<Entry>  &index()  { return _index;  }
 
 private:
-    FileBlockWriter               _writer;
-    TypedMMapFileIndex<IndexEntry> _index;
+    FileBlockWriter            _writer;
+    TypedMMapFileIndex<Entry>  _index;
+};
+
+/**
+ * Combines FileBlockReader and TypedMMapFileIndex<Entry> to provide
+ * block reading with index lookup support.
+ *
+ * Typical flow:
+ *   BlockStorageReader<> reader;
+ *   reader.open("data.blk", "data.idx");
+ *   reader.readNextBlock(...);      // sequential read
+ *   reader.readBlockAt(10, ...);    // random read by index entry
+ *   reader.close();
+ */
+template<typename Entry = IndexEntry>
+class BlockStorageReader {
+public:
+    explicit BlockStorageReader(size_t index_grow = 1024)
+        : _index(index_grow) {}
+
+    ~BlockStorageReader() {
+        close();
+    }
+
+    bool open(const std::string &block_path, const std::string &index_path) {
+        _reader.openFile(block_path);
+        return _index.openFile(index_path);
+    }
+
+    void close() {
+        _reader.closeFile();
+        _index.closeFile();
+    }
+
+    bool readNextBlock(BlockHeader &header, std::vector<uint8_t> &payload, bool &eof) {
+        return _reader.readBlock(header, payload, eof);
+    }
+
+    bool readNextBlock(BlockHeader &header,
+                       std::vector<uint8_t> &ext_header,
+                       std::vector<uint8_t> &payload,
+                       bool &eof) {
+        return _reader.readBlock(header, ext_header, payload, eof);
+    }
+
+    bool getIndexEntry(size_t i, Entry &entry) const {
+        return _index.getEntry(i, entry);
+    }
+
+    size_t entryCount() const {
+        return _index.getEntryCount();
+    }
+
+    uint64_t position() const {
+        return _reader.position();
+    }
+
+    bool seekToEntry(size_t i) {
+        Entry entry{};
+        if (!_index.getEntry(i, entry)) {
+            return false;
+        }
+        return _reader.seek(entry.offset);
+    }
+
+    bool readBlockAt(size_t i, BlockHeader &header, std::vector<uint8_t> &payload, bool &eof) {
+        eof = false;
+        if (!seekToEntry(i)) {
+            return false;
+        }
+        return _reader.readBlock(header, payload, eof);
+    }
+
+    bool readBlockAt(size_t i,
+                     BlockHeader &header,
+                     std::vector<uint8_t> &ext_header,
+                     std::vector<uint8_t> &payload,
+                     bool &eof) {
+        eof = false;
+        if (!seekToEntry(i)) {
+            return false;
+        }
+        return _reader.readBlock(header, ext_header, payload, eof);
+    }
+
+    FileBlockReader            &reader() { return _reader; }
+    TypedMMapFileIndex<Entry>  &index()  { return _index;  }
+
+private:
+    FileBlockReader            _reader;
+    TypedMMapFileIndex<Entry>  _index;
 };
 
 } // namespace toolkit
