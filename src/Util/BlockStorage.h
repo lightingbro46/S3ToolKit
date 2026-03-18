@@ -82,6 +82,8 @@ protected:
         _offset = 0;
     }
 
+    void setOffset(uint64_t off) { _offset = off; }
+
 private:
     FileIOInterface::Writer _writer;
     uint64_t _offset = 0;
@@ -89,12 +91,23 @@ private:
 
 class FileBlockWriter : public BlockWriterInterface {
 public:
-    void openFile(const std::string &path) {
+    /**
+     * Open the block file.
+     * @param path   Path to the file.
+     * @param append If true, open in append mode and resume from the current
+     *               end-of-file position.  If false (default), truncate to zero.
+     */
+    void openFile(const std::string &path, bool append = false) {
         if (!path.empty()) {
             resetStream();
             _file_name = path;
             _file = std::make_shared<FileDisk>();
-            _file->openFile(path, "wb");
+            _file->openFile(path, append ? "ab" : "wb");
+            if (append) {
+                // Initialise _offset to the current file size so that
+                // position() reflects the true write offset for index entries.
+                setOffset(File::fileSize(path));
+            }
         }
     }
 

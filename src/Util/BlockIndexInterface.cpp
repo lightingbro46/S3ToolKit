@@ -286,7 +286,7 @@ MMapFileIndex::~MMapFileIndex() {
     closeFile();
 }
 
-bool MMapFileIndex::openFile(const std::string &path) {
+bool MMapFileIndex::openFile(const std::string &path, bool truncate) {
     if (path.empty()) {
         return false;
     }
@@ -298,7 +298,8 @@ bool MMapFileIndex::openFile(const std::string &path) {
 #if defined(_WIN32)
     throw std::runtime_error("MMapFileIndex is not implemented on Windows");
 #else
-    _fd = ::open(path.c_str(), O_RDWR | O_CREAT, 0666);
+    int flags = O_RDWR | O_CREAT | (truncate ? O_TRUNC : 0);
+    _fd = ::open(path.c_str(), flags, 0666);
     if (_fd < 0) {
         return false;
     }

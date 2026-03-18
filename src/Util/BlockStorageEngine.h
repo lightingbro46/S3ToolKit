@@ -33,13 +33,17 @@ public:
 
     /**
      * Open block file and index file together.
-     * @param block_path Path to the block data file  (created/appended)
-     * @param index_path Path to the mmap index file   (created/resumed)
-     * @return true if both opened successfully
+     * @param block_path Path to the block data file.
+     * @param index_path Path to the mmap index file.
+     * @param truncate   If true, both files are always created fresh.
+     *                   If false (default), existing files are resumed in
+     *                   append mode — new blocks are added after existing ones.
+     * @return true if both opened successfully.
      */
-    bool open(const std::string &block_path, const std::string &index_path) {
-        _writer.openFile(block_path);
-        return _index.openFile(index_path);
+    bool open(const std::string &block_path, const std::string &index_path,
+              bool truncate = false) {
+        _writer.openFile(block_path, !truncate);
+        return _index.openFile(index_path, truncate);
     }
 
     /**
@@ -91,6 +95,25 @@ public:
         entry.stamp  = header.stamp;
 
         if (!_writer.appendBlock(header, ext_header, ext_size, payload, payloadSize, flush_after)) {
+            return false;
+        }
+        return _index.addEntry(entry);
+    }
+
+    /**
+     * Write a block using a caller-supplied index entry.
+     * The caller fills in type-specific fields (e.g. type, flags); this method
+     * fills in stamp and offset automatically before adding the entry.
+     * @return true if block written and index entry added.
+     */
+    bool appendBlock(Entry entry,
+                     const BlockHeader &header,
+                     const uint8_t *ext_header, uint16_t ext_size,
+                     const uint8_t *payload, uint32_t payload_size,
+                     bool flush_after = false) {
+        entry.offset = _writer.position();
+        entry.stamp  = header.stamp;
+        if (!_writer.appendBlock(header, ext_header, ext_size, payload, payload_size, flush_after)) {
             return false;
         }
         return _index.addEntry(entry);

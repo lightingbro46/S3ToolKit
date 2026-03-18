@@ -118,7 +118,13 @@ public:
 
     ~MMapFileIndex() override;
 
-    bool openFile(const std::string &path);
+    /**
+     * Open (or create) the index file.
+     * @param path      Path to the .idx file.
+     * @param truncate  If true, always start fresh (existing content discarded).
+     *                  If false (default), resume an existing valid index.
+     */
+    bool openFile(const std::string &path, bool truncate = false);
 
     void closeFile();
 
