@@ -271,6 +271,13 @@ bool MMapIndexInterface::flush() const {
     return hasRegion() && _mmap_region->flush(true);
 }
 
+bool MMapIndexInterface::truncateEntries(size_t new_count) {
+    if (!hasRegion()) return false;
+    if (new_count > static_cast<size_t>(_header->entry_count)) return false;
+    _header->entry_count = static_cast<uint64_t>(new_count);
+    return true;
+}
+
 size_t MMapIndexInterface::getEntryCount() const {
     return hasRegion() ? static_cast<size_t>(_header->entry_count) : 0;
 }

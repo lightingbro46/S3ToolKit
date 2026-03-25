@@ -63,6 +63,14 @@ public:
 
     virtual size_t getCapacity() const;
 
+    /**
+     * Truncate the index to new_count entries.
+     * Used during resume to drop entries that reference data not yet
+     * written to the block file (e.g. process crashed before stdio flush).
+     * @return false if new_count > current entry_count or region not open.
+     */
+    virtual bool truncateEntries(size_t new_count);
+
     size_t getEntrySize() const {
         return _entry_size;
     }

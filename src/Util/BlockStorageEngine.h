@@ -3,6 +3,7 @@
 
 #include "BlockStorage.h"
 #include "BlockIndexInterface.h"
+#include "Util/logger.h"
 
 namespace toolkit {
 
@@ -43,7 +44,9 @@ public:
     bool open(const std::string &block_path, const std::string &index_path,
               bool truncate = false) {
         _writer.openFile(block_path, !truncate);
-        return _index.openFile(index_path, truncate);
+        if (!_index.openFile(index_path, truncate)) return false;
+        if (!truncate) repairIndex();
+        return true;
     }
 
     /**
@@ -64,7 +67,15 @@ public:
 
     /**
      * Write a block and atomically record its offset + stamp in the index.
-     * @param flush_after Flush block file after writing (default false)
+     *
+     * Safety model:
+     *  - flush_after=false: purely buffered — data in stdio buffer, index in
+     *    mmap page cache. Fast path for bulk writes.
+     *  - flush_after=true: fflush .mblk into OS page cache, add index entry,
+     *    msync .idx to disk. Suitable for event-boundary checkpoints.
+     *  - On any crash (process kill, OOM), the OS page cache survives;
+     *    repairIndex() at open() trims any orphaned index entries.
+     *
      * @return true if block written and index entry added
      */
     bool appendBlock(const BlockHeader &header, const uint8_t *payload,
@@ -76,14 +87,18 @@ public:
         if (!_writer.appendBlock(header, payload, payloadSize, flush_after)) {
             return false;
         }
-        return _index.addEntry(entry);
+        bool ok = _index.addEntry(entry);
+        if (flush_after) _index.flush();
+        return ok;
     }
 
     /**
      * Write a block and atomically record its offset + stamp in the index.
      * ext_header = bytes immediately after BlockHeader on disk (the extension header).
      * payload    = pure payload bytes (ext header excluded).
-     * @param flush_after Flush block file after writing (default false)
+     *
+     * @param flush_after If true: fflush .mblk into page cache, add entry,
+     *                    msync .idx to disk. If false: buffered write, fast path.
      * @return true if block written and index entry added
      */
     bool appendBlock(const BlockHeader &header,
@@ -97,13 +112,18 @@ public:
         if (!_writer.appendBlock(header, ext_header, ext_size, payload, payloadSize, flush_after)) {
             return false;
         }
-        return _index.addEntry(entry);
+        bool ok = _index.addEntry(entry);
+        if (flush_after) _index.flush();
+        return ok;
     }
 
     /**
      * Write a block using a caller-supplied index entry.
      * The caller fills in type-specific fields (e.g. type, flags); this method
      * fills in stamp and offset automatically before adding the entry.
+     *
+     * @param flush_after If true: fflush .mblk into page cache, add entry,
+     *                    msync .idx to disk. If false: buffered write, fast path.
      * @return true if block written and index entry added.
      */
     bool appendBlock(Entry entry,
@@ -116,7 +136,9 @@ public:
         if (!_writer.appendBlock(header, ext_header, ext_size, payload, payload_size, flush_after)) {
             return false;
         }
-        return _index.addEntry(entry);
+        bool ok = _index.addEntry(entry);
+        if (flush_after) _index.flush();
+        return ok;
     }
 
     /**
@@ -139,6 +161,39 @@ public:
     TypedMMapFileIndex<Entry>  &index()  { return _index;  }
 
 private:
+    /**
+     * On resume-open, drop index entries whose recorded offset is at or
+     * beyond the actual block file size.  This repairs the inconsistency
+     * that can arise when the previous process was killed after the mmap
+     * index entry was written but before the stdio buffer was flushed:
+     *   index entry visible on disk  ←  mmap page writeback
+     *   block bytes NOT on disk      ←  stdio buffer lost on crash
+     */
+    void repairIndex() {
+        const uint64_t blk_size = _writer.position(); // = file size after append-open
+        const size_t   n        = _index.getEntryCount();
+        if (n == 0) return;
+
+        size_t valid = n;
+        while (valid > 0) {
+            Entry entry{};
+            if (!_index.getEntry(valid - 1, entry)) break;
+            // Entry must start at an offset that leaves room for at least
+            // a BlockHeader; entries at or beyond file end are orphaned.
+            if (entry.offset + sizeof(BlockHeader) <= blk_size) break;
+            --valid;
+        }
+        if (valid < n) {
+            WarnL << "BlockStorageWriter: dropped " << (n - valid)
+                  << " orphaned index entries (blk_size=" << blk_size
+                  << ", first bad offset="
+                  << [&]{ Entry e{}; _index.getEntry(valid, e); return e.offset; }()
+                  << ")";
+            _index.truncateEntries(valid);
+            _index.flush();
+        }
+    }
+
     FileBlockWriter            _writer;
     TypedMMapFileIndex<Entry>  _index;
 };
