@@ -79,8 +79,9 @@ public:
     /**
      * Constructor
      * @param dbname Database name
+     * @param enablePerformanceMode Enable performance mode (WAL, synchronous=NORMAL, temp_store=MEMORY, busy_timeout=3000ms)
      */
-    explicit SqliteConnection(const std::string &dbname) {
+    explicit SqliteConnection(const std::string &dbname, bool enablePerformanceMode = false) {
         sqlite3* db = nullptr;
         if (sqlite3_open(dbname.c_str(), &db) != SQLITE_OK) {
             std::string errorMsg = sqlite3_errmsg(db);
@@ -91,6 +92,14 @@ public:
 
         // Thiết lập chế độ hỗ trợ UTF-8
         sqlite3_exec(_db.get(), "PRAGMA encoding = \"UTF-8\";", nullptr, nullptr, nullptr);
+
+        if (enablePerformanceMode) {
+            // Thiết lập các PRAGMA để tối ưu hiệu suất
+            sqlite3_exec(_db.get(), "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr);
+            sqlite3_exec(_db.get(), "PRAGMA synchronous=NORMAL;", nullptr, nullptr, nullptr);
+            sqlite3_exec(_db.get(), "PRAGMA temp_store=MEMORY;", nullptr, nullptr, nullptr);
+            sqlite3_exec(_db.get(), "PRAGMA busy_timeout=3000;", nullptr, nullptr, nullptr);
+        }
     }
 
     ~SqliteConnection() { _db.reset(); }
