@@ -696,6 +696,12 @@ std::string format_guid(const std::string& s) {
            s.substr(16,4) + "-" + s.substr(20,12);
 }
 
+std::string format_guid_without_dash(const std::string &s) {
+    string s_copy = s;
+    replace(s_copy, "-", "");
+    return s_copy;
+}
+
 std::string generate_guid() {
     return format_guid(strToLower(makeRandStr(32)));
 }

@@ -537,6 +537,11 @@ private:
 std::string format_guid(const std::string &s);
 
 /**
+ * Format without "-" to uuid/guid form
+ */
+std::string format_guid_without_dash(const std::string &s);
+
+/**
  * Generate uuid/guid
  */
 std::string generate_guid();
