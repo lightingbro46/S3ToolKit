@@ -99,8 +99,8 @@ public:
             sqlite3_exec(_db.get(), "PRAGMA synchronous=NORMAL;", nullptr, nullptr, nullptr);
             sqlite3_exec(_db.get(), "PRAGMA temp_store=MEMORY;", nullptr, nullptr, nullptr);
             sqlite3_exec(_db.get(), "PRAGMA busy_timeout=3000;", nullptr, nullptr, nullptr);
-            sqlite3_exec(_db.get(), "PRAGMA wal_checkpoint(TRUNCATE);", nullptr, nullptr, nullptr);
-            sqlite3_exec(_db.get(), "PRAGMA wal_autocheckpoint=1000;", nullptr, nullptr, nullptr);
+            // Thay vì 1000 pages (~4MB), dùng 100 pages (~400KB)
+            sqlite3_exec(_db.get(), "PRAGMA wal_autocheckpoint=100;", nullptr, nullptr, nullptr);
         }
     }
 

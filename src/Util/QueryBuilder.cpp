@@ -152,8 +152,8 @@ std::string QueryBuilder::build() const {
     return ss.str();
 }
 
-const std::vector<std::string>& QueryBuilder::getParams() const {
-    static std::vector<std::string> combined;
+std::vector<std::string> QueryBuilder::getParams() const {
+    std::vector<std::string> combined;
     combined.clear();
     switch (_type) {
         case Type::SELECT:

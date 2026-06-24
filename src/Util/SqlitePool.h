@@ -34,6 +34,7 @@ public:
             30,
             [this]() {
                 flushError();
+                checkpointWAL();
                 return true;
             },
             nullptr);
@@ -65,6 +66,7 @@ public:
     void Init(Args&&... arg) {
         _pool.reset(new PoolType(std::forward<Args>(arg)...));
         _pool->obtain();
+        truncateWAL();
     }
 
     /**
@@ -134,6 +136,26 @@ private:
         }
         for (auto& query : query_copy) {
             asyncQuery(query.sql_str, query.values_vec, query.tryCnt);
+        }
+    }
+
+    void checkpointWAL() {
+        // Periodic WAL checkpoint to ensure main DB file stays updated
+        if (_pool) {
+            try {
+                auto conn = _pool->obtain();
+                conn->query("PRAGMA wal_checkpoint(PASSIVE);");  // PASSIVE: non-blocking
+            } catch (...) {}
+        }
+    }
+
+    void truncateWAL() {
+        // Run checkpoint ONCE at startup, not on every new connection
+        if (_pool) {
+            try {
+                auto conn = _pool->obtain();
+                conn->query("PRAGMA wal_checkpoint(TRUNCATE);");  // TRUNCATE: truncate WAL file
+            } catch (...) {}
         }
     }
 

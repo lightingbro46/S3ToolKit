@@ -40,7 +40,7 @@ public:
     QueryBuilder& offset(int offset);
 
     std::string build() const;
-    const std::vector<std::string>& getParams() const;
+    std::vector<std::string> getParams() const;
 
 private:
     Type _type;
