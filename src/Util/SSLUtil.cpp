@@ -11,6 +11,9 @@
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/conf.h>
+#include <openssl/aes.h>
+#include <openssl/evp.h>
+#include <openssl/buffer.h>
 #endif // defined(ENABLE_OPENSSL)
 
 using namespace std;
@@ -434,6 +437,124 @@ namespace toolkit
 #else
         return "";
 #endif
+    }
+
+    string SSLUtil::cryptWithAes(const std::string &key, const std::string &iv, const std::string &in_str, bool enc_or_dec)
+    {
+#if defined(ENABLE_OPENSSL)
+        const EVP_CIPHER *cipher = nullptr;
+        if (key.size() == 16)
+        {
+            cipher = iv.size() == 12 ? EVP_aes_128_gcm() : EVP_aes_128_cbc();
+        }
+        else if (key.size() == 24 && iv.size() == 12)
+        {
+            cipher = EVP_aes_192_gcm();
+        }
+        else if (key.size() == 32 && iv.size() == 12)
+        {
+            cipher = EVP_aes_256_gcm();
+        }
+        if (!cipher || (iv.size() != 12 && iv.size() != 16))
+        {
+            WarnL << "AES key must be 16 bytes for CBC, or 16/24/32 bytes for GCM; iv must be 16 bytes for CBC or 12 bytes for GCM";
+            return "";
+        }
+        EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+        if (!ctx)
+        {
+            WarnL << "EVP_CIPHER_CTX_new failed: " << getLastError();
+            return "";
+        }
+        onceToken token0(nullptr, [&]()
+                         { EVP_CIPHER_CTX_free(ctx); });
+        if (iv.size() == 12)
+        {
+            static constexpr int kGcmTagLen = 16;
+            if (!enc_or_dec && in_str.size() < kGcmTagLen)
+            {
+                WarnL << "AES-GCM encrypted data must include a 16-byte auth tag";
+                return "";
+            }
+            if (EVP_CipherInit_ex(ctx, cipher, nullptr, nullptr, nullptr, enc_or_dec ? 1 : 0) != 1 ||
+                EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, (int)iv.size(), nullptr) != 1 ||
+                EVP_CipherInit_ex(ctx, nullptr, nullptr, (const unsigned char *)key.data(), (const unsigned char *)iv.data(), enc_or_dec ? 1 : 0) != 1)
+            {
+                WarnL << "EVP_CipherInit_ex AES-GCM failed: " << getLastError();
+                return "";
+            }
+
+            int out_len = 0;
+            if (enc_or_dec)
+            {
+                std::string out_str(in_str.size() + kGcmTagLen, '\0');
+                if (EVP_CipherUpdate(ctx, (unsigned char *)out_str.data(), &out_len, (const unsigned char *)in_str.data(), in_str.size()) != 1)
+                {
+                    WarnL << "EVP_CipherUpdate AES-GCM failed: " << getLastError();
+                    return "";
+                }
+                int final_len = 0;
+                if (EVP_CipherFinal_ex(ctx, (unsigned char *)out_str.data() + out_len, &final_len) != 1)
+                {
+                    WarnL << "EVP_CipherFinal_ex AES-GCM failed: " << getLastError();
+                    return "";
+                }
+                out_len += final_len;
+                if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, kGcmTagLen, (unsigned char *)out_str.data() + out_len) != 1)
+                {
+                    WarnL << "EVP_CTRL_GCM_GET_TAG failed: " << getLastError();
+                    return "";
+                }
+                out_str.resize(out_len + kGcmTagLen);
+                return out_str;
+            }
+
+            const auto cipher_len = in_str.size() - kGcmTagLen;
+            std::string out_str(cipher_len, '\0');
+            if (EVP_CipherUpdate(ctx, (unsigned char *)out_str.data(), &out_len, (const unsigned char *)in_str.data(), cipher_len) != 1)
+            {
+                WarnL << "EVP_CipherUpdate AES-GCM failed: " << getLastError();
+                return "";
+            }
+            if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, kGcmTagLen, (void *)(in_str.data() + cipher_len)) != 1)
+            {
+                WarnL << "EVP_CTRL_GCM_SET_TAG failed: " << getLastError();
+                return "";
+            }
+            int final_len = 0;
+            if (EVP_CipherFinal_ex(ctx, (unsigned char *)out_str.data() + out_len, &final_len) != 1)
+            {
+                WarnL << "EVP_CipherFinal_ex AES-GCM auth failed: " << getLastError();
+                return "";
+            }
+            out_str.resize(out_len + final_len);
+            return out_str;
+        }
+
+        if (EVP_CipherInit_ex(ctx, cipher, nullptr, (const unsigned char *)key.data(), (const unsigned char *)iv.data(), enc_or_dec ? 1 : 0) != 1)
+        {
+            WarnL << "EVP_CipherInit_ex failed: " << getLastError();
+            return "";
+        }
+        std::string out_str(in_str.size() + AES_BLOCK_SIZE, '\0');
+        int out_len1 = 0;
+        if (EVP_CipherUpdate(ctx, (unsigned char *)out_str.data(), &out_len1, (const unsigned char *)in_str.data(), in_str.size()) != 1)
+        {
+            WarnL << "EVP_CipherUpdate failed: " << getLastError();
+            return "";
+        }
+        int out_len2 = 0;
+        if (EVP_CipherFinal_ex(ctx, (unsigned char *)out_str.data() + out_len1, &out_len2) != 1)
+        {
+            WarnL << "EVP_CipherFinal_ex failed: " << getLastError();
+            return "";
+        }
+        out_str.resize(out_len1 + out_len2);
+        return out_str;
+#else
+        WarnL << "ENABLE_OPENSSL disabled, you can not use any features based on openssl";
+        return "";
+#endif // defined(ENABLE_OPENSSL)
     }
 
 } // namespace toolkit

@@ -108,6 +108,16 @@ public:
      * @return Certificate domain name
      */
     static std::string getServerName(X509 *cer);
+
+    /**
+     * Use AES to encrypt and decrypt data
+     * @param key AES key, must be 16 bytes for CBC, or 16/24/32 bytes for GCM
+     * @param iv AES initialization vector, must be 16 bytes for CBC or 12 bytes for GCM
+     * @param in_str Original data to be encrypted or decrypted. For GCM decrypt, pass ciphertext + 16-byte tag
+     * @param enc_or_dec true: Encrypt, false: Decrypt
+     * @return Encrypted or decrypted data
+     */
+    static std::string cryptWithAes(const std::string &key, const std::string &iv, const std::string &in_str, bool enc_or_dec);
 };
 
 }//namespace toolkit
