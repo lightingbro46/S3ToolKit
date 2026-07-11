@@ -112,7 +112,7 @@ inline uint32_t Byte::Get4BytesLE(const uint8_t *data, size_t i) {
 }
 
 inline uint64_t Byte::Get8BytesLE(const uint8_t *data, size_t i) {
-    return uint64_t{Byte::Get4Bytes(data, i + 4)} << 32 | Byte::Get4Bytes(data, i);
+    return uint64_t{Byte::Get4BytesLE(data, i + 4)} << 32 | Byte::Get4BytesLE(data, i);
 }
 
 inline void Byte::Set2BytesLE(uint8_t *data, size_t i, uint16_t value) {
@@ -148,6 +148,13 @@ inline uint16_t Byte::PadTo4Bytes(uint16_t size) {
     // If size is not multiple of 32 bits then pad it.
     if (size & 0x03)
         return (size & 0xFFFC) + 4;
+    else
+        return size;
+}
+
+inline uint32_t Byte::PadTo4Bytes(uint32_t size) {
+    if (size & 0x03)
+        return (size & UINT32_C(0xFFFFFFFC)) + 4;
     else
         return size;
 }

@@ -917,7 +917,7 @@ std::shared_ptr<void> Socket::cloneSocket(const Socket &other) {
 
 bool Socket::bindPeerAddr(const struct sockaddr *dst_addr, socklen_t addr_len, bool soft_bind) {
     LOCK_GUARD(_mtx_sock_fd);
-    if (!_sock_fd) {
+    if (!_sock_fd || !dst_addr) {
         return false;
     }
     if (_sock_fd->type() != SockNum::Sock_UDP) {

@@ -11,8 +11,11 @@
 
 namespace toolkit {
 
+class TcpServerTestAccess;
+
 //Configurable TCP server; configuration is passed to the session object through the Session::attachServer method
 class TcpServer : public Server {
+    friend class TcpServerTestAccess;
 public:
     using Ptr = std::shared_ptr<TcpServer>;
 

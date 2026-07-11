@@ -238,7 +238,7 @@ bool MMapIndexInterface::ensureCapacity(size_t min_capacity) {
     if (new_mapping_size == 0) return false;
 
     auto region = remapRegion(new_mapping_size);
-    if (!bindRegion(region)) {
+    if (!region || !bindRegion(region)) {
         return false;
     }
     _header->capacity = next_capacity;

@@ -148,6 +148,7 @@ public:
 //Fast, flow control disabled: setDelayMode(DELAY_MODE_NO_DELAY); setInterval(10); setFastResend(1); setNoCwnd(true); setRxMinrto(10)
 class KcpTransport : public std::enable_shared_from_this<KcpTransport> {
 public:
+    friend class KcpTransportAccess;
     using Ptr = std::shared_ptr<KcpTransport>;
 
     enum DelayMode {

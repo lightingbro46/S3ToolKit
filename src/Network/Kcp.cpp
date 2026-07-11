@@ -316,10 +316,10 @@ void KcpTransport::onData() {
 
     // merge fragment
     while (int size = peeksize()) {
+        int offset = 0;
+        auto buffer = BufferRaw::create(size);
+        buffer->setSize(size);
         while (1) {
-            int offset = 0;
-            auto buffer = BufferRaw::create(size);
-            buffer->setSize(size);
             auto packet = _rcv_queue.front();
             _rcv_queue.pop_front();
             memcpy(buffer->data() + offset, packet->getPayloadData(), packet->getLen());

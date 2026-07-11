@@ -17,6 +17,19 @@ option(ENABLE_SQLITE "enable sqlite" ON)
 option(ENABLE_WEPOLL "Enable wepoll" ON)
 option(ASAN_USE_DELETE "use delele[] or free when asan enabled" OFF)
 option(BUILD_SHARED_LIBS "Build all libraries shared" ON)
+option(BUILD_EXAMPLES "Build demo and benchmark executables" ON)
+option(ENABLE_COVERAGE "Enable gcov-compatible coverage instrumentation" OFF)
+
+include(CTest)
+
+if (ENABLE_COVERAGE)
+    if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        message(FATAL_ERROR "ENABLE_COVERAGE requires CMAKE_BUILD_TYPE=Debug")
+    endif ()
+    if (NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        message(FATAL_ERROR "ENABLE_COVERAGE is supported only with GCC or Clang")
+    endif ()
+endif ()
 
 include(CheckStructHasMember)
 include(CheckSymbolExists)
@@ -147,10 +160,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/sr
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_deps)
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${TK_COMPILE_DEFINITIONS})
 target_compile_options(${PROJECT_NAME} PUBLIC ${TK_COMPILE_OPTIONS})
+if (ENABLE_COVERAGE)
+    target_compile_options(${PROJECT_NAME} PRIVATE --coverage -O0 -g)
+    set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS " --coverage")
+endif ()
 set_target_properties(${PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib
                                                  ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
-if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    # This project is the root project, so add the test program
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND (BUILD_EXAMPLES OR BUILD_TESTING))
     add_subdirectory(tests)
 endif ()

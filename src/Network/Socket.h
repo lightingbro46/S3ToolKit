@@ -270,6 +270,7 @@ public:
 //Asynchronous IO Socket object, including TCP client, server, and UDP socket
 class Socket : public std::enable_shared_from_this<Socket>, public noncopyable, public SockInfo {
 public:
+    friend class SocketTestAccess;
     using Ptr = std::shared_ptr<Socket>;
     //Receive data callback
     using onReadCB = std::function<void(Buffer::Ptr &buf, struct sockaddr *addr, int addr_len)>;

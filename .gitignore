@@ -32,4 +32,5 @@
 /cmake-build-debug/
 /.idea/
 build
+/build-test/
 /.vs

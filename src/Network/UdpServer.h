@@ -12,6 +12,7 @@ namespace toolkit {
 
 class UdpServer : public Server {
 public:
+    friend class UdpServerTestAccess;
 #if __cplusplus >= 201703L
     class PeerIdType : public std::array<char, 18> {
 #else

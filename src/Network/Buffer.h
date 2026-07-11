@@ -401,7 +401,7 @@ public:
         if (size > old_size) {
             auto append = size - old_size;
             if (append > _erase_tail) {
-                _str.resize(append - _erase_tail, c);
+                _str.resize(_str.size() + append - _erase_tail, c);
                 memset(const_cast<char *>(_str.data()) + _erase_head + old_size, c, _erase_tail);
                 _erase_tail = 0;
             } else {
