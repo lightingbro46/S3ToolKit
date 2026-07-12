@@ -72,7 +72,7 @@ uint16_t TcpServer::getPort() {
 
 void TcpServer::setOnCreateSocket(Socket::onCreateSocket cb) {
     if (cb) {
-        _on_create_socket = std::move(cb);
+        _on_create_socket = cb;
     } else {
         _on_create_socket = [](const EventPoller::Ptr &poller) {
             return Socket::createSocket(poller, false);
@@ -269,4 +269,3 @@ Session::Ptr TcpServer::createSession(const Socket::Ptr &sock) {
 }
 
 } /* namespace toolkit */
-

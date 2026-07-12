@@ -236,6 +236,35 @@ TEST(BufferSockTest, SendsTcpListsAndReportsSuccessAndFailure) {
     ::close(fds[1]);
 }
 
+TEST(BufferSockTest, ResumesPartiallyWrittenTcpVector) {
+    int fds[2] = {-1, -1};
+    ASSERT_EQ(0, ::socketpair(AF_UNIX, SOCK_STREAM, 0, fds));
+    ASSERT_EQ(0, SockUtil::setNoBlocked(fds[0]));
+    ASSERT_EQ(0, SockUtil::setNoBlocked(fds[1]));
+
+    List<std::pair<Buffer::Ptr, bool>> packets;
+    for (char fill : {'a', 'b', 'c'}) {
+        packets.emplace_back(std::make_shared<BufferString>(std::string(128 * 1024, fill)), false);
+    }
+    size_t completed = 0;
+    auto list = BufferList::create(std::move(packets),
+        [&](const Buffer::Ptr &, bool success) { if (success) ++completed; }, false);
+    const auto first = list->send(fds[0], 0);
+    ASSERT_GT(first, 0);
+    EXPECT_FALSE(list->empty());
+
+    std::array<char, 64 * 1024> drain{};
+    for (int attempt = 0; attempt < 200 && !list->empty(); ++attempt) {
+        while (::recv(fds[1], drain.data(), drain.size(), 0) > 0) {}
+        list->send(fds[0], 0);
+    }
+    while (::recv(fds[1], drain.data(), drain.size(), 0) > 0) {}
+    EXPECT_TRUE(list->empty());
+    EXPECT_EQ(3u, completed);
+    ::close(fds[0]);
+    ::close(fds[1]);
+}
+
 TEST(BufferSockTest, ReceivesTcpAndUdpBuffersAndPreservesAddresses) {
     int pair[2] = {-1, -1};
     ASSERT_EQ(0, ::socketpair(AF_UNIX, SOCK_DGRAM, 0, pair));

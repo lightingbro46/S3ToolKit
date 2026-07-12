@@ -34,7 +34,7 @@ else
         --filter "${PROJECT_ROOT}/src/" \
         --exclude "${PROJECT_ROOT}/src/win32/" \
         --exclude "${PROJECT_ROOT}/tests/" \
-        --fail-under-line 60 \
+        --fail-under-line 90 \
         --xml-pretty --output "${COVERAGE_REPORT}" \
         "${BUILD_DIR}" || coverage_status=$?
 fi

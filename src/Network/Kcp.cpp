@@ -450,7 +450,11 @@ size_t KcpTransport::mergeSendQueue(const char *buffer, size_t len) {
     }
 
     size_t extendLen = std::min<size_t>(len, _mss - oldLen);
+    // BufferRaw::setCapacity may reallocate without preserving its contents.
+    // Keep the existing stream fragment before growing the packet.
+    std::string oldPayload(packet->getPayloadData(), oldLen);
     packet->setPayLoadSize(oldLen + extendLen);
+    memcpy(packet->getPayloadData(), oldPayload.data(), oldLen);
     memcpy(packet->getPayloadData() + oldLen, buffer, extendLen);
     packet->setLen(oldLen + extendLen);
     packet->setFrg(0);

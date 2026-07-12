@@ -122,6 +122,52 @@ public:
 
         auto immediate = std::make_shared<KcpTellPacket>(_conv);
         sendPacket(immediate, true);
+
+        // Start with a full receive window, deliver one complete segment, and
+        // leave an incomplete fragment behind to exercise fast window recovery.
+        _rcv_queue.clear();
+        auto complete = std::make_shared<KcpDataPacket>(_conv, 1);
+        complete->setFrg(0);
+        complete->getPayloadData()[0] = 'x';
+        _rcv_queue.push_back(complete);
+        for (uint32_t i = 1; i < _rcv_wnd; ++i) {
+            auto fragment = std::make_shared<KcpDataPacket>(_conv, 1);
+            fragment->setFrg(static_cast<uint8_t>(_rcv_wnd));
+            _rcv_queue.push_back(fragment);
+        }
+        onData();
+    }
+
+    void exerciseAckInput() {
+        _conv = 77;
+        _conv_init = true;
+        _snd_una = 0;
+        _snd_nxt = 3;
+        _cwnd = 1;
+        _rmt_wnd = 32;
+        _snd_buf.clear();
+        for (uint32_t sn = 0; sn < 3; ++sn) {
+            auto data = std::make_shared<KcpDataPacket>(_conv, 1);
+            data->setSn(sn);
+            data->setTs(1);
+            _snd_buf.push_back(data);
+        }
+        KcpAckPacket first(_conv);
+        first.setSn(0);
+        first.setTs(1);
+        first.setWnd(32);
+        first.storeToData();
+        KcpAckPacket second(_conv);
+        second.setSn(2);
+        second.setTs(2);
+        second.setWnd(32);
+        second.storeToData();
+        auto batch = BufferRaw::create(first.size() + second.size());
+        batch->assign(first.data(), first.size());
+        memcpy(batch->data() + first.size(), second.data(), second.size());
+        batch->setSize(first.size() + second.size());
+        input(batch);
+        _poller->sync([]() {});
     }
 };
 } // namespace toolkit
@@ -204,11 +250,26 @@ TEST(KcpTransportTest, SupportsStreamModeAndEmptyInput) {
 
     semaphore received;
     std::string output;
-    server->setOnRead([&](const Buffer::Ptr &buffer) { output += buffer->toString(); received.post(); });
+    std::mutex output_mutex;
+    server->setOnRead([&](const Buffer::Ptr &buffer) {
+        {
+            std::lock_guard<std::mutex> lock(output_mutex);
+            output += buffer->toString();
+        }
+        received.post();
+    });
     client->send(std::make_shared<BufferString>(std::string("hello")), false);
     client->send(std::make_shared<BufferString>(std::string(" world")), true);
-    ASSERT_TRUE(received.wait(2000));
-    EXPECT_EQ("hello world", output);
+    std::string received_output;
+    for (int i = 0; i < 2; ++i) {
+        ASSERT_TRUE(received.wait(2000));
+        std::lock_guard<std::mutex> lock(output_mutex);
+        received_output = output;
+        if (received_output.size() == 11) {
+            break;
+        }
+    }
+    EXPECT_EQ("hello world", received_output);
     client->setOnWrite(nullptr);
     server->setOnWrite(nullptr);
     server->setOnRead(nullptr);
@@ -231,6 +292,13 @@ TEST(KcpTransportTest, ValidatesServerStateSizeAndMalformedInput) {
     server->setFastackConserve(true);
     server->setNoCwnd(false);
     server->setStreamMode(false);
+}
+
+TEST(KcpTransportTest, ProcessesBatchedAcknowledgementsAndFastWindowRecovery) {
+    auto transport = std::make_shared<KcpTransportAccess>(false);
+    transport->setOnRead([](const Buffer::Ptr &) {});
+    transport->exerciseAckInput();
+    transport->exercisePrivateStates();
 }
 
 TEST(KcpTransportTest, RetransmitsDroppedPackets) {

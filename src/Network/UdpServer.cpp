@@ -333,7 +333,7 @@ SessionHelper::Ptr UdpServer::createSession(const PeerIdType &id, Buffer::Ptr &b
 
 void UdpServer::setOnCreateSocket(onCreateSocket cb) {
     if (cb) {
-        _on_create_socket = std::move(cb);
+        _on_create_socket = cb;
     } else {
         _on_create_socket = [](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
             return Socket::createSocket(poller, false);

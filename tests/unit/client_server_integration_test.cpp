@@ -17,17 +17,16 @@ public:
         server->_poller->sync([&]() { server->onManagerSession(); });
         EXPECT_FALSE(server->_is_on_manager);
 
-        bool created = false;
-        server->_on_create_socket = [&](const EventPoller::Ptr &poller) {
-            created = true;
-            return Socket::createSocket(poller);
-        };
-        EXPECT_TRUE(server->createSocket(server->_poller));
-        EXPECT_TRUE(created);
-        EXPECT_EQ(server, server->getServer(server->_poller.get()));
-
         auto child = std::make_shared<TcpServer>(server->_poller);
         server->_cloned_server[server->_poller.get()] = child;
+        bool created = false;
+        server->setOnCreateSocket([&](const EventPoller::Ptr &poller) {
+            created = true;
+            return Socket::createSocket(poller);
+        });
+        EXPECT_TRUE(server->createSocket(server->_poller));
+        EXPECT_TRUE(child->createSocket(child->_poller));
+        EXPECT_TRUE(created);
         EXPECT_EQ(child, server->getServer(server->_poller.get()));
         child->_parent = server;
         EXPECT_EQ(child, child->getServer(server->_poller.get()));
@@ -41,6 +40,34 @@ public:
 
 class UdpServerTestAccess {
 public:
+    static bool emitFirstSessionError(const std::shared_ptr<UdpServer> &server) {
+        std::lock_guard<std::recursive_mutex> lock(*server->_session_mutex);
+        if (server->_session_map->empty()) return false;
+        return server->_session_map->begin()->second->session()->getSock()->emitErr(
+            SockException(Err_other, "synthetic peer error"));
+    }
+
+    static void exerciseCrossPoller(const std::shared_ptr<UdpServer> &server,
+                                    const Session::Ptr &session) {
+        UdpServer::PeerIdType id;
+        id[0] = 9;
+        auto helper = std::make_shared<SessionHelper>(server, session, "cross-poller-session");
+        {
+            std::lock_guard<std::recursive_mutex> lock(*server->_session_mutex);
+            server->_session_map->emplace(id, helper);
+        }
+        Buffer::Ptr buffer = std::make_shared<BufferString>("cross-poller");
+        sockaddr_in address{};
+        address.sin_family = AF_INET;
+        address.sin_port = htons(9000);
+        address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        server->_poller->sync([&]() {
+            server->onRead_l(true, id, buffer,
+                reinterpret_cast<sockaddr *>(&address), sizeof(address));
+        });
+        session->getPoller()->sync([]() {});
+    }
+
     static void exercise(const std::shared_ptr<UdpServer> &server, const Session::Ptr &session) {
         server->_session_mutex = std::make_shared<std::recursive_mutex>();
         server->_session_map = std::make_shared<UdpServer::SessionMapType>();
@@ -74,6 +101,29 @@ public:
         sockaddr_storage invalid{};
         invalid.ss_family = AF_UNSPEC;
         EXPECT_THROW(server->onRead(buffer, reinterpret_cast<sockaddr *>(&invalid), sizeof(invalid)), std::invalid_argument);
+
+        sockaddr_in6 ipv6{};
+        ipv6.sin6_family = AF_INET6;
+        ipv6.sin6_port = htons(4321);
+        ipv6.sin6_addr = in6addr_loopback;
+        Buffer::Ptr ipv6_buffer = std::make_shared<BufferString>("ipv6");
+        EXPECT_NO_THROW(server->onRead(ipv6_buffer, reinterpret_cast<sockaddr *>(&ipv6), sizeof(ipv6)));
+
+        server->_multi_poller = true;
+        server->onManagerSession();
+        server->_multi_poller = false;
+
+        auto child = std::make_shared<UdpServer>(server->_poller);
+        server->_cloned_server[server->_poller.get()] = child;
+        bool child_factory_called = false;
+        server->setOnCreateSocket([&](const EventPoller::Ptr &poller, const Buffer::Ptr &, sockaddr *, int) {
+            child_factory_called = true;
+            return Socket::createSocket(poller);
+        });
+        EXPECT_TRUE(child->createSocket(child->_poller, buffer,
+            reinterpret_cast<sockaddr *>(&address), sizeof(address)));
+        EXPECT_TRUE(child_factory_called);
+        server->_cloned_server.clear();
     }
 
     static void cloneEmptyThrows(const std::shared_ptr<UdpServer> &target, const UdpServer &source) {
@@ -277,6 +327,15 @@ TEST(UdpClientServerTest, CreatesSessionAndEchoesDatagrams) {
     EXPECT_GT(client->send("udp-high-level"), 0);
     ASSERT_TRUE(received.wait(2000));
     EXPECT_EQ("udp-high-level", payload);
+    EXPECT_GT(client->send("udp-peer-socket"), 0);
+    ASSERT_TRUE(received.wait(2000));
+    EXPECT_EQ("udp-peer-socket", payload);
+    const int errors_before = EchoSessionForTest::errors.load();
+    ASSERT_TRUE(UdpServerTestAccess::emitFirstSessionError(server));
+    for (int i = 0; i < 200 && EchoSessionForTest::errors.load() == errors_before; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    EXPECT_GT(EchoSessionForTest::errors.load(), errors_before);
     client->shutdown();
     EXPECT_FALSE(client->alive());
     client.reset();
@@ -382,4 +441,14 @@ TEST(UdpServerTest, InternalDispatchHandlesDisabledExistingMissingAndInvalidPeer
     auto throwing_server = std::make_shared<UdpServer>(poller);
     auto throwing = std::make_shared<ThrowingSessionForTest>(Socket::createSocket(poller));
     UdpServerTestAccess::exercise(throwing_server, throwing);
+
+    EventPoller::Ptr other;
+    EventPollerPool::Instance().for_each([&](const TaskExecutor::Ptr &executor) {
+        auto candidate = std::static_pointer_cast<EventPoller>(executor);
+        if (!other && candidate != poller) other = candidate;
+    });
+    ASSERT_TRUE(other);
+    ASSERT_NE(other, poller);
+    auto cross = std::make_shared<ThrowingSessionForTest>(Socket::createSocket(other));
+    UdpServerTestAccess::exerciseCrossPoller(server, cross);
 }
