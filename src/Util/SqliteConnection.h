@@ -205,7 +205,9 @@ public:
     SqliteStmt queryString(const char *fmt, Args &&...arg) {
         sqlite3_stmt *stmt;
         if (sqlite3_prepare_v2(_db.get(), fmt, -1, &stmt, nullptr) != SQLITE_OK) {
-            throw SqliteException(sqlite3_sql(stmt), sqlite3_errmsg(_db.get()));
+            // stmt is NULL when prepare fails: sqlite3_sql(NULL) would build std::string from nullptr
+            // and replace the SQL error with "basic_string::_M_construct null not valid".
+            throw SqliteException(fmt, sqlite3_errmsg(_db.get()));
         }
 
         bindAll(stmt, std::forward<Args>(arg)...);
@@ -221,7 +223,9 @@ public:
     SqliteStmt queryString(const char *fmt) {
         sqlite3_stmt *stmt;
         if (sqlite3_prepare_v2(_db.get(), fmt, -1, &stmt, nullptr) != SQLITE_OK) {
-            throw SqliteException(sqlite3_sql(stmt), sqlite3_errmsg(_db.get()));
+            // stmt is NULL when prepare fails: sqlite3_sql(NULL) would build std::string from nullptr
+            // and replace the SQL error with "basic_string::_M_construct null not valid".
+            throw SqliteException(fmt, sqlite3_errmsg(_db.get()));
         }
         return SqliteStmt(stmt);
     }
