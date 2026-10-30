@@ -9,7 +9,9 @@
 #include "Util/ResourcePool.h"
 #include "Util/SHA1.h"
 #include "Util/base64.h"
+#include "Util/File.h"
 #include "Util/mini.h"
+#include "Util/util.h"
 
 using namespace toolkit;
 
@@ -122,6 +124,62 @@ TEST(IniTest, DumpRoundTripsValues) {
     EXPECT_EQ("value", parsed[".root"]);
     EXPECT_EQ("localhost", parsed["server.host"]);
     EXPECT_EQ(8080, parsed["server.port"].as<int>());
+}
+
+TEST(IniTest, DumpFileWritesOnlyValuesDifferingFromDefaults) {
+    mINI ini;
+    ini["general.id"] = "your_server_id";
+    ini["general.timeout"] = 10;
+    ini["http.port"] = 80;
+    ini["http.root"] = "./www";
+    ini.markDefaults();
+
+    ini.parse("[general]\n# set by the operator\nid=abc\ntimeout=10\n[custom]\nkey=1\n");
+    ini["custom.empty"] = "";
+
+    const auto path = exeDir() + "mini_dump_test.ini";
+    ini.dumpFile(path);
+    const auto text = File::loadFile(path);
+    EXPECT_NE(std::string::npos, text.find("# set by the operator\r\nid=abc"));
+    EXPECT_EQ(std::string::npos, text.find("timeout"));
+    EXPECT_EQ(std::string::npos, text.find("[http]"));
+    EXPECT_EQ(std::string::npos, text.find("empty"));
+
+    mINI parsed;
+    parsed.parseFile(path);
+    EXPECT_EQ(2u, parsed.size());
+    EXPECT_EQ("abc", parsed["general.id"]);
+    EXPECT_EQ("1", parsed["custom.key"]);
+
+    // A copy keeps the defaults; dump() without skip_default still lists every key
+    mINI copy(ini);
+    copy["http.port"] = 8080;
+    copy.dumpFile(path);
+    mINI reparsed;
+    reparsed.parseFile(path);
+    EXPECT_EQ("8080", reparsed["http.port"]);
+    EXPECT_NE(std::string::npos, ini.dump().find("timeout=10"));
+    EXPECT_FALSE(File::fileExist(path + ".tmp"));
+    File::delete_file(path);
+}
+
+TEST(IniTest, DumpFileWithoutDefaultsWritesEveryKey) {
+    mINI ini;
+    ini["server.host"] = "localhost";
+    ini["server.empty"] = "";
+    const auto path = exeDir() + "mini_dump_all_test.ini";
+    ini.dumpFile(path);
+    mINI parsed;
+    parsed.parseFile(path);
+    EXPECT_EQ(2u, parsed.size());
+    EXPECT_EQ("localhost", parsed["server.host"]);
+    File::delete_file(path);
+}
+
+TEST(IniTest, SaveIniFileFailureLeavesNoTemporaryFile) {
+    const auto path = exeDir() + "missing_dir_for_mini_test/config.ini";
+    EXPECT_FALSE(saveIniFile(path, "a=1\r\n"));
+    EXPECT_FALSE(File::fileExist(path + ".tmp"));
 }
 
 namespace {

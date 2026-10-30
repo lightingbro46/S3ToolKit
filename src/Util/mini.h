@@ -10,6 +10,10 @@
 
 namespace toolkit {
 
+// Writes a temporary file next to fileName and renames it over fileName, so a crash or a full disk
+// never leaves a truncated ini file behind; concurrent calls are serialized.
+bool saveIniFile(const std::string &fileName, const std::string &content);
+
 template<typename variant>
 class mINI_basic : public std::map<std::string, variant> {
     // Public API : existing map<> interface plus following methods
@@ -58,33 +62,40 @@ public:
         parse(buf);
     }
 
+    // skip_default: leave out the keys whose value equals the one recorded by markDefaults()
     std::string dump(const std::string &header = "",
-                     const std::string &footer = "") const {
+                     const std::string &footer = "",
+                     bool skip_default = false) const {
         std::string output;
         std::vector<std::string> kv;
         auto copy = *this;
-        output += dump_l(copy, _sort);
+        output += dump_l(copy, _sort, skip_default);
 
         if (!copy.empty()) {
             std::vector<std::string> sort;
             for (auto &pr : copy) {
                 sort.emplace_back(pr.first);
             }
-            output += dump_l(copy, sort);
+            output += dump_l(copy, sort, skip_default);
         }
 
         return header + (header.empty() ? "" : "\r\n") + output + "\r\n" + footer + (footer.empty() ? "" : "\r\n");
     }
 
+    // Only the values differing from markDefaults() are written; the file is replaced atomically.
     void dumpFile(const std::string &fileName = exePath() + ".ini") const {
-        std::ofstream out(fileName, std::ios::out | std::ios::binary | std::ios::trunc);
-        const auto dmp = dump();
-        out.write(dmp.data(), dmp.size());
+        saveIniFile(fileName, dump("", "", true));
     }
 
     void updateFrom(const mINI_basic &that) {
         _sort = that._sort;
         _comment = that._comment;
+    }
+
+    // Records the current values as the defaults left out by dumpFile(); call it once all defaults are
+    // registered and before the ini file is loaded. Without it dumpFile() writes every key.
+    void markDefaults() {
+        _default = *this;
     }
 
     static mINI_basic &Instance();
@@ -117,7 +128,16 @@ private:
         return it->second;
     }
 
-    std::string dump_l(std::map<std::string, variant> &copy, const std::vector<std::string> &sort) const {
+    bool isDefault(const std::string &key, const std::string &value) const {
+        if (_default.empty()) {
+            return false;
+        }
+        const auto it = _default.find(key);
+        // A key without a default (unknown or never registered) is kept unless it is empty
+        return it == _default.end() ? value.empty() : static_cast<const std::string &>(it->second) == value;
+    }
+
+    std::string dump_l(std::map<std::string, variant> &copy, const std::vector<std::string> &sort, bool skip_default) const {
         std::string output, tag;
         std::vector<std::string> kv;
         for (auto &key : sort) {
@@ -128,6 +148,10 @@ private:
                 kv = { key.substr(0, pos), key.substr(pos + 1) };
             }
             auto &value = copy[key];
+            if (skip_default && isDefault(key, value)) {
+                copy.erase(key);
+                continue;
+            }
             if (kv[0].empty()) {
                 auto comment = getComment("." + kv[1]);
                 if (!comment.empty()) {
@@ -159,6 +183,7 @@ private:
 private:
     std::vector<std::string> _sort;
     std::map<std::string, std::string> _comment;
+    std::map<std::string, variant> _default;
 };
 
 //  handy variant class as key/values
