@@ -3,6 +3,10 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#if !defined(_WIN32)
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 #include "Util/Byte.hpp"
 #include "Util/MD5.h"
@@ -220,6 +224,46 @@ TEST(IniTest, SaveIniFileFailureLeavesNoTemporaryFile) {
     EXPECT_FALSE(saveIniFile(path, "a=1\r\n"));
     EXPECT_FALSE(File::fileExist(path + ".tmp"));
 }
+
+#if !defined(_WIN32)
+TEST(IniTest, SaveIniFileKeepsSymlinkAndMode) {
+    const auto dir = exeDir() + "mini_link_test/";
+    File::delete_file(dir);
+    File::create_path(dir + "real/", 0755);
+    const auto real = dir + "real/config.ini";
+    const auto link = dir + "config.ini";
+    ASSERT_TRUE(File::saveFile("a=0\r\n", real));
+    ASSERT_EQ(0, chmod(real.data(), 0640));
+    ASSERT_EQ(0, symlink(real.data(), link.data()));
+
+    EXPECT_TRUE(saveIniFile(link, "a=1\r\n"));
+    struct stat st;
+    ASSERT_EQ(0, lstat(link.data(), &st));
+    EXPECT_TRUE(S_ISLNK(st.st_mode));
+    EXPECT_EQ("a=1\r\n", File::loadFile(real));
+    ASSERT_EQ(0, stat(real.data(), &st));
+    EXPECT_EQ(0640u, st.st_mode & 07777);
+    EXPECT_FALSE(File::fileExist(real + ".tmp"));
+    File::delete_file(dir);
+}
+
+TEST(IniTest, SaveIniFileOverwritesInPlaceWhenDirectoryIsReadOnly) {
+    if (geteuid() == 0) {
+        GTEST_SKIP() << "root ignores the directory permission";
+    }
+    const auto dir = exeDir() + "mini_readonly_test/";
+    File::delete_file(dir);
+    File::create_path(dir, 0755);
+    const auto path = dir + "config.ini";
+    ASSERT_TRUE(File::saveFile("a=0\r\n", path));
+    ASSERT_EQ(0, chmod(dir.data(), 0555));
+
+    EXPECT_TRUE(saveIniFile(path, "a=1\r\n"));
+    EXPECT_EQ("a=1\r\n", File::loadFile(path));
+    chmod(dir.data(), 0755);
+    File::delete_file(dir);
+}
+#endif
 
 namespace {
 struct TrackedResource {
