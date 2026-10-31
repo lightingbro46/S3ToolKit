@@ -163,6 +163,45 @@ TEST(IniTest, DumpFileWritesOnlyValuesDifferingFromDefaults) {
     File::delete_file(path);
 }
 
+namespace {
+size_t countOf(const std::string &text, const std::string &what) {
+    size_t count = 0;
+    for (auto pos = text.find(what); pos != std::string::npos; pos = text.find(what, pos + what.size())) {
+        ++count;
+    }
+    return count;
+}
+} // namespace
+
+TEST(IniTest, DumpWritesEachSectionOnce) {
+    mINI ini;
+    // A file saved by an older version: [api] repeated, keys added after it was written
+    ini.parse("# api\n[api]\nb=2\na=1\n[http]\nport=80\n[api]\nsecret=x\n");
+    ini["api.c"] = 3;
+    ini["zone.key"] = "z";
+    ini["aaa.key"] = "y";
+    ini[".root"] = "r";
+
+    const auto text = ini.dump();
+    EXPECT_EQ(1u, countOf(text, "[api]"));
+    EXPECT_EQ(1u, countOf(text, "[http]"));
+    EXPECT_LT(text.find("root=r"), text.find("[api]"));
+    // file order inside a section, new keys at its end, new sections after the old ones (alphabetical)
+    EXPECT_LT(text.find("b=2"), text.find("a=1"));
+    EXPECT_LT(text.find("secret=x"), text.find("c=3"));
+    EXPECT_LT(text.find("c=3"), text.find("[http]"));
+    EXPECT_LT(text.find("[http]"), text.find("[aaa]"));
+    EXPECT_LT(text.find("[aaa]"), text.find("[zone]"));
+    EXPECT_NE(std::string::npos, text.find("# api\r\n[api]"));
+
+    mINI parsed;
+    parsed.parse(text);
+    EXPECT_EQ(ini.size(), parsed.size());
+    for (auto &pr : ini) {
+        EXPECT_EQ(static_cast<const std::string &>(pr.second), parsed[pr.first]) << pr.first;
+    }
+}
+
 TEST(IniTest, DumpFileWithoutDefaultsWritesEveryKey) {
     mINI ini;
     ini["server.host"] = "localhost";

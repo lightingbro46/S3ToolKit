@@ -3,6 +3,7 @@
 
 #include <cctype>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -66,18 +67,37 @@ public:
     std::string dump(const std::string &header = "",
                      const std::string &footer = "",
                      bool skip_default = false) const {
-        std::string output;
-        std::vector<std::string> kv;
-        auto copy = *this;
-        output += dump_l(copy, _sort, skip_default);
-
-        if (!copy.empty()) {
-            std::vector<std::string> sort;
-            for (auto &pr : copy) {
-                sort.emplace_back(pr.first);
+        // Keys grouped by section so each [section] is written once: the file order first, then the new
+        // keys (alphabetical). Keys without a section go first, after a [section] they would be read back in it.
+        std::vector<std::string> sections;
+        std::map<std::string, std::vector<std::string>> keys;
+        std::set<std::string> seen;
+        auto add = [&](const std::string &key) {
+            if (!seen.insert(key).second) {
+                return;
             }
-            output += dump_l(copy, sort, skip_default);
+            const auto pos = key.find('.');
+            const auto section = pos == std::string::npos ? std::string() : key.substr(0, pos);
+            auto &list = keys[section];
+            if (list.empty()) {
+                sections.emplace_back(section);
+            }
+            list.emplace_back(key);
+        };
+        for (auto &key : _sort) {
+            add(key);
         }
+        for (auto &pr : *this) {
+            add(pr.first);
+        }
+        std::vector<std::string> sort = keys[""];
+        for (auto &section : sections) {
+            if (!section.empty()) {
+                sort.insert(sort.end(), keys[section].begin(), keys[section].end());
+            }
+        }
+        auto copy = *this;
+        const auto output = dump_l(copy, sort, skip_default);
 
         return header + (header.empty() ? "" : "\r\n") + output + "\r\n" + footer + (footer.empty() ? "" : "\r\n");
     }
