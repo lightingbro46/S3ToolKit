@@ -243,6 +243,12 @@ public:
      */
     size_t getExecutorSize() const override;
 
+    /**
+     * CPUs the pinned pollers use: poller i runs on cpus[i % cpus.size()]. Empty (the default) keeps
+     * i % hardware_concurrency. Call before the first EventPollerPool/WorkThreadPool::Instance().
+     */
+    static void setAllowedCpus(const std::vector<int> &cpus);
+
 protected:
     size_t addPoller(const std::string &name, size_t size, int priority, bool register_thread, bool enable_cpu_affinity = true);
 

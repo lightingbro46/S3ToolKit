@@ -214,12 +214,23 @@ size_t TaskExecutorGetterImp::getExecutorSize() const {
     return _threads.size();
 }
 
+static vector<int> &allowedCpus() {
+    static vector<int> s_cpus;
+    return s_cpus;
+}
+
+void TaskExecutorGetterImp::setAllowedCpus(const vector<int> &cpus) {
+    allowedCpus() = cpus;
+}
+
 size_t TaskExecutorGetterImp::addPoller(const string &name, size_t size, int priority, bool register_thread, bool enable_cpu_affinity) {
     auto cpus = thread::hardware_concurrency();
     size = size > 0 ? size : cpus;
+    const auto allowed = allowedCpus();
     for (size_t i = 0; i < size; ++i) {
         auto full_name = name + " " + to_string(i);
-        auto cpu_index = i % cpus;
+        // Inside a cpuset (taskset, docker --cpuset-cpus) CPU i may not be allowed.
+        int cpu_index = allowed.empty() ? (int)(i % cpus) : allowed[i % allowed.size()];
         EventPoller::Ptr poller(new EventPoller(full_name));
         poller->runLoop(false, register_thread);
         poller->async([cpu_index, full_name, priority, enable_cpu_affinity]() {
