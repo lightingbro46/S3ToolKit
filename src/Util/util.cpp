@@ -446,6 +446,9 @@ static inline bool initMillisecondThread() {
             usleep(500);
         }
     };
+    // The thread may start only after main() returned: construct the Logger first so it is destroyed
+    // after s_thread joins, not before (the thread would then use a destroyed Logger).
+    Logger::Instance();
     static std::shared_ptr<std::thread> s_thread(new std::thread(lam), [running](std::thread *t) {
         *running = false;
         t->join();
