@@ -124,7 +124,8 @@ bool File::create_path(const std::string &file, unsigned int mod) {
             break;
         }
         if (_access(dir.data(), 0) == -1) { //The access function is to check whether it exists
-            if (mkdir(dir.data(), mod) == -1) {  //If it does not exist, use the mkdir function to create
+            // Another thread may create the same directory between access() and mkdir().
+            if (mkdir(dir.data(), mod) == -1 && errno != EEXIST) {
                 WarnL << "mkdir " << dir << " failed: " << get_uv_errmsg();
                 return false;
             }
