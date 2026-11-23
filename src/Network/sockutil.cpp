@@ -780,7 +780,11 @@ int SockUtil::bindUdpSock(const uint16_t port, const char *local_ip, bool enable
         WarnL << "Create socket failed: " << get_uv_errmsg(true);
         return -1;
     }
-    if (enable_reuse) {
+    // Port 0 lets the kernel pick a free port. With SO_REUSEADDR/SO_REUSEPORT set, Linux treats every other
+    // socket that also set them as no conflict and may hand out a port a live socket already holds: two sockets
+    // then share one port and incoming datagrams go to either of them (e.g. two WebRTC client sessions mixing
+    // their STUN/DTLS/RTP). Reuse only makes sense for an explicit port.
+    if (enable_reuse && port != 0) {
         setReuseable(fd);
     }
     setNoSigpipe(fd);
