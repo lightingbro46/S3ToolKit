@@ -360,6 +360,13 @@ public:
     void setOnErr(onErrCB cb);
 
     /**
+     * Set ignored error callback, UDP only: read/send failures that do not trigger onErr (e.g. Err_refused when the
+     * connected peer port is closed). Triggered in the poller thread, or in the sending thread for a send failure
+     * @param cb Callback object
+     */
+    void setOnSoftErr(onErrCB cb);
+
+    /**
      * Set TCP listening receive connection callback
      * @param cb Callback object
      */
@@ -529,6 +536,8 @@ private:
     int onAccept(const SockNum::Ptr &sock, int event) noexcept;
     ssize_t onRead(const SockNum::Ptr &sock, const SocketRecvBuffer::Ptr &buffer) noexcept;
     void onWriteAble(const SockNum::Ptr &sock);
+    //Emit ignored error event, and print a rate limited warning
+    void onSoftErr(const SockNum::Ptr &sock, int uv_err, const char *what);
     void onConnected(const SockNum::Ptr &sock, const onErrCB &cb);
     void onFlushed();
     void startWriteAbleEvent(const SockNum::Ptr &sock);
@@ -552,6 +561,10 @@ private:
     bool _err_emit = false;
     //Whether to enable network speed statistics
     bool _enable_speed = false;
+    //Whether an ignored error warning has been printed
+    bool _soft_err_warned = false;
+    //Ignored error warnings not printed since the last one
+    uint32_t _soft_err_warn_skipped = 0;
     //UDP send target address
     std::shared_ptr<struct sockaddr_storage> _udp_send_dst;
 
@@ -567,6 +580,8 @@ private:
 
     //Record the timer for the last send buffer (including socket write buffer and application layer buffer) cleared
     Ticker _send_flush_ticker;
+    //Timer for the last ignored error warning printed
+    Ticker _soft_err_warn_ticker;
     //Abstract class for socket fd
     SockFD::Ptr _sock_fd;
     //The poller thread bound to this socket, events are triggered in this thread
@@ -576,6 +591,8 @@ private:
 
     //Socket exception event (such as disconnection)
     onErrCB _on_err;
+    //Ignored error event (setOnSoftErr)
+    onErrCB _on_soft_err;
     //Receive data event
     onMultiReadCB _on_multi_read;
     //Socket buffer cleared event (can be used for send flow control)

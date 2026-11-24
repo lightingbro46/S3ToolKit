@@ -435,3 +435,68 @@ TEST(SocketTest, ExchangesUdpDataOverLoopback) {
     sender->closeSock();
     receiver->closeSock();
 }
+
+namespace {
+// A UDP socket connected to a loopback port nobody listens on
+Socket::Ptr connectToClosedUdpPort(const EventPoller::Ptr &poller) {
+    auto socket = Socket::createSocket(poller);
+    if (!socket->bindUdpSock(0, "127.0.0.1")) {
+        return nullptr;
+    }
+    auto closed = Socket::createSocket(poller);
+    if (!closed->bindUdpSock(0, "127.0.0.1")) {
+        return nullptr;
+    }
+    const auto destination = SockUtil::make_sockaddr("127.0.0.1", closed->get_local_port());
+    closed->closeSock();
+    if (!socket->bindPeerAddr(reinterpret_cast<const sockaddr *>(&destination), sizeof(sockaddr_in))) {
+        return nullptr;
+    }
+    return socket;
+}
+
+// Sends every 10 ms for up to `ms` or until `done` is posted; true when posted
+bool sendUntil(const Socket::Ptr &socket, semaphore &done, int ms) {
+    for (int waited = 0; waited < ms; waited += 10) {
+        socket->send("x");
+        if (done.wait(10)) {
+            return true;
+        }
+    }
+    return false;
+}
+} // namespace
+
+TEST(SocketTest, ConnectedUdpTellsRefusedToSoftErrAndGoesOn) {
+    auto poller = EventPollerPool::Instance().getPoller();
+    auto socket = connectToClosedUdpPort(poller);
+    auto silent = connectToClosedUdpPort(poller);
+    if (!socket || !silent) {
+        GTEST_SKIP() << "UDP loopback unavailable";
+    }
+    semaphore soft_err, err;
+    std::atomic<int> soft_code { -1 };
+    std::atomic<int> soft_count { 0 };
+    socket->setOnErr([&](const SockException &) { err.post(); });
+    socket->setOnSoftErr([&](const SockException &ex) {
+        soft_code = ex.getErrCode();
+        if (++soft_count == 1) {
+            soft_err.post();
+        }
+    });
+    silent->setOnErr([&](const SockException &) { err.post(); });
+
+    ASSERT_TRUE(sendUntil(socket, soft_err, 2000));
+    EXPECT_EQ(Err_refused, soft_code.load());
+    // Not an end of the socket: no onErr, and it keeps sending (and being refused)
+    EXPECT_FALSE(sendUntil(socket, err, 300));
+    EXPECT_TRUE(socket->alive());
+    EXPECT_GT(soft_count.load(), 1);
+    // Without the hook nothing changes
+    EXPECT_FALSE(sendUntil(silent, err, 300));
+    EXPECT_TRUE(silent->alive());
+
+    socket->setOnSoftErr(nullptr);
+    socket->closeSock();
+    silent->closeSock();
+}

@@ -95,6 +95,11 @@ void Socket::setOnMultiRead(onMultiReadCB cb) {
     }
 }
 
+void Socket::setOnSoftErr(onErrCB cb) {
+    LOCK_GUARD(_mtx_event);
+    _on_soft_err = std::move(cb);
+}
+
 void Socket::setOnErr(onErrCB cb) {
     LOCK_GUARD(_mtx_event);
     if (cb) {
@@ -268,7 +273,14 @@ bool Socket::attachEvent(const SockNum::Ptr &sock) {
         }
         if (event & EventPoller::Event_Error) {
             if (sock->type() == SockNum::Sock_UDP) {
-                // udp ignore error
+                // udp ignore error, only emit it to on_soft_err (reading SO_ERROR clears it)
+                if (strong_self->_on_soft_err) {
+                    int error = 0;
+                    socklen_t len = sizeof(error);
+                    if (0 == getsockopt(sock->rawFd(), SOL_SOCKET, SO_ERROR, (char *)&error, &len) && error) {
+                        strong_self->onSoftErr(sock, uv_translate_posix_error(error), "Poll");
+                    }
+                }
             } else {
                 strong_self->emitErr(getSockErr(sock->rawFd()));
             }
@@ -298,7 +310,7 @@ ssize_t Socket::onRead(const SockNum::Ptr &sock, const SocketRecvBuffer::Ptr &bu
                 if (sock->type() == SockNum::Sock_TCP) {
                     emitErr(toSockException(err));
                 } else {
-                    WarnL << "Recv err on udp socket[" << sock->rawFd() << "]: " << uv_strerror(err);
+                    onSoftErr(sock, err, "Recv");
                 }
             }
             return ret;
@@ -321,6 +333,35 @@ ssize_t Socket::onRead(const SockNum::Ptr &sock, const SocketRecvBuffer::Ptr &bu
         }
     }
     return 0;
+}
+
+//Print at most one ignored error warning per socket in this interval
+static constexpr auto kSoftErrWarnIntervalMS = 5 * 1000;
+
+void Socket::onSoftErr(const SockNum::Ptr &sock, int uv_err, const char *what) {
+    {
+        LOCK_GUARD(_mtx_event);
+        try {
+            if (_on_soft_err) {
+                _on_soft_err(toSockException(uv_err));
+            }
+        } catch (std::exception &ex) {
+            ErrorL << "Exception occurred when emit on_soft_err: " << ex.what();
+        }
+    }
+    if (_soft_err_warned && _soft_err_warn_ticker.elapsedTime() < kSoftErrWarnIntervalMS) {
+        ++_soft_err_warn_skipped;
+        return;
+    }
+    if (_soft_err_warn_skipped) {
+        WarnL << what << " err on udp socket[" << sock->rawFd() << "]: " << uv_strerror(uv_err) << " ("
+              << _soft_err_warn_skipped << " more not logged)";
+    } else {
+        WarnL << what << " err on udp socket[" << sock->rawFd() << "]: " << uv_strerror(uv_err);
+    }
+    _soft_err_warned = true;
+    _soft_err_warn_ticker.resetTime();
+    _soft_err_warn_skipped = 0;
 }
 
 bool Socket::emitErr(const SockException &err) noexcept {
@@ -789,7 +830,7 @@ bool Socket::flushData(const SockNum::Ptr &sock, bool poller_thread) {
         if (sock->type() == SockNum::Sock_UDP) {
             //UDP send exception, discard the data
             send_buf_sending_tmp.pop_front();
-            WarnL << "Send udp socket[" << sock->rawFd() << "] failed, data ignored: " << uv_strerror(err);
+            onSoftErr(sock, err, "Send");
             continue;
         }
         //TCP send failed, trigger an exception
